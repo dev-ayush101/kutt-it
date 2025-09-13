@@ -2,10 +2,9 @@ package com.kuttit.service;
 
 import com.kuttit.model.Url;
 import com.kuttit.repository.UrlRepository;
-import com.kuttit.util.ShortCodeGenerator;
+import com.kuttit.util.Base62Encoder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Service
 public class UrlService {
@@ -18,19 +17,11 @@ public class UrlService {
 
     // Create Short URL
     public String shortenUrl(String originalUrl) {
-        String shortCode;
-        int attempts = 0;
-
-        do {
-            String saltedUrl = originalUrl + attempts;
-            shortCode = ShortCodeGenerator.generate(saltedUrl);
-            attempts++;
-        } while (urlRepository.existsByShortCode(shortCode) && attempts < 5);
+        String shortCode = generateShortCode();
 
         Url url = Url.builder()
                 .originalUrl(originalUrl)
                 .shortCode(shortCode)
-                .createdAt(LocalDateTime.now())
                 .build();
 
         urlRepository.save(url);
@@ -42,5 +33,13 @@ public class UrlService {
         return urlRepository.findByShortCode(shortCode)
                 .map(Url::getOriginalUrl)
                 .orElseThrow(() -> new RuntimeException("URL Not Found"));
+    }
+
+    @Autowired
+    private CounterService counterService;
+
+    public String generateShortCode() {
+        long id = counterService.getNextSequence("url_sequence");
+        return Base62Encoder.encode(id);
     }
 }
