@@ -145,14 +145,17 @@ Let's weigh a few options and consider their pros and cons.
 #### Bad Solution: Long Url Prefix
 
 **Approach**
+
 The silliest thing we could do to shorten an input url is to just take the prefix of the input url as the short code. Imagine you had a url like `www.linkedin.com/in/ayush-mishra-40072280/` we could just take the first N (lets say 8 for now) characters of the url and use that as the short code. In this case `www.short.ly/www.link`.
 
 **Challenges**
+
 Clearly, this method would not meet constraint #1 about uniqueness. Any two urls that share the first N characters would end up mapping to the exact same short url. When a user comes and asks to be redirected via short url `www.short.ly/www.link` we would not know whether they want to visit `www.linkedin.com/in/ayush-mishra-40072280/`, `www.linkedin.com/in/random-noob/`, or any of the countless other urls that share the same prefix.
 
 #### Good Solution: Hash Function
 
 **Approach**
+
 We need some entropy (randomness) to try to ensure that our codes are unique. We could try a random number generator or a hash function!
 
 Using a random number generator to create short codes involves generating a random number each time a new URL is shortened. This random number serves as the unique identifier for the URL. We can use common random number generation functions like Java's `Random()` or more robust cryptographic random number generators for increased unpredictability. The generated random number would then be used as the short code for the URL. But a random number generator does not provide enough entropy to ensure that our codes are unique.
@@ -172,3 +175,32 @@ hash_code = hash_function(canonical_url)
 short_code_encoded = base62_encode(hash_code)
 short_code = short_code_encoded[:8] # 8 characters
 ```
+
+**Challenges**
+
+Despite the randomness, there's still a chance of generating duplicate short codes as the number of stored URLs increases. With a code space of size `|S|` and `n` codes already in use, the probability the next randomly generated code collides is `n / |S|`. At large scale this can become non-negligible, requiring retries and database checks to enforce uniqueness.
+
+To reduce collision probability, we need higher entropy, which means generating longer short codes. However, longer codes negate the benefit of having a short URL. Detecting and resolving collisions also adds database lookups on insertion, introducing latency and complexity. This creates a tradeoff between uniqueness, shortness, and efficiency—making it difficult to optimize all three simultaneously.
+
+To handle collisions, implement a UNIQUE constraint on the short code column and retry with bounded attempts (e.g., max 3-5 retries) before falling back to a different strategy or returning an error. Upon saving to the database, we'll get an error if the short code already exists. In this case, we can simply retry the process with a random salt added to the hash function.
+
+#### Great Solution: Unique Counter with Base62 Encoding
+
+**Approach**
+
+One way to guarantee we don't have collisions is to simply increment a counter for each new url. We can then take the output of the counter and encode it using base62 encoding to ensure it's a compacted representation.
+
+Redis is particularly well-suited for managing this counter because it's single-threaded and supports atomic operations. Being single-threaded means Redis processes one command at a time, eliminating race conditions. Its INCR command atomically increments the counter and returns the new value in a single operation. Because Redis is single-threaded, two simultaneous calls will always receive different values. If one gets 1000, the other gets 1001. This guarantee is what makes Redis ideal for distributed counter management.
+
+Each counter value is unique, eliminating the risk of collisions without the need for additional checks. Incrementing a counter and encoding it is computationally efficient, supporting high throughput. With proper counter management, the system can scale horizontally to handle massive numbers of URLs. The short code can be easily decoded back to the original ID if needed, aiding in database lookups.
+
+**Challenges**
+
+In a distributed environment, maintaining a single global counter can be challenging due to synchronization issues. All instances of our Primary Server would need to agree on the counter value. **We'll talk more about this when we get into scaling.**
+
+Sequential counters also produce predictable short codes, making URL enumeration possible. An attacker could iterate through codes to discover all URLs. If this is a concern, apply a reversible transformation (like XOR with a secret key) before base62 encoding, or accept the tradeoff since short URLs are often meant to be shared publicly anyway.
+
+We also have to consider that the size of the short code continues to increase over time with this method.
+To determine whether we should be concerned about length, we can do a little math. If we have 1B urls, when base62 encoded, this would result in a 6-character string. Here's why: [1,000,000,000 in base62 is '15ftgG'](https://math.tools/calculator/base/10-62)
+
+This means that even with a billion URLs, our short codes would still be quite compact. At 62^6 (approximately 56 billion URLs), we'd need to move to 7-character codes, giving us capacity for 62^7 (over 3.5 trillion) URLs. This scalability allows us to handle a massive number of URLs while keeping the codes short.
