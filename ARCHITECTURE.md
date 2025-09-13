@@ -129,3 +129,46 @@ For a URL shortener, a 302 redirect is often preferred because:
 - It gives us more control over the redirection process, allowing us to update or expire links as needed.
 - It prevents browsers from caching the redirect, which could cause issues if we need to change or delete the short URL in the future.
 - It allows us to track click statistics for each short URL (even though this is out of scope for this design).
+
+## Potential Deep Dives
+At this point, we have a basic, functioning system that satisfies the functional requirements. However, there are a number of areas we could dive deeper into to reduce the likelihood of collision, support scalability, and improve performance. We can now look back at our non-functional requirements and see which ones still need to be satisfied or improved upon.
+
+### How can we ensure short urls are unique?
+In our high-level design, we abstracted away the details of how we generate a short url but now it's time to get into the nitty-gritty! There are a handful of constraints we need to keep in mind as we design:
+
+1. We need to ensure that the short codes are unique.
+2. We want the short codes to be as short as possible (it is a url shortener afterall).
+3. We want to ensure codes are efficiently generated.
+
+Let's weigh a few options and consider their pros and cons.
+
+#### Bad Solution: Long Url Prefix
+
+**Approach**
+The silliest thing we could do to shorten an input url is to just take the prefix of the input url as the short code. Imagine you had a url like `www.linkedin.com/in/ayush-mishra-40072280/` we could just take the first N (lets say 8 for now) characters of the url and use that as the short code. In this case `www.short.ly/www.link`.
+
+**Challenges**
+Clearly, this method would not meet constraint #1 about uniqueness. Any two urls that share the first N characters would end up mapping to the exact same short url. When a user comes and asks to be redirected via short url `www.short.ly/www.link` we would not know whether they want to visit `www.linkedin.com/in/ayush-mishra-40072280/`, `www.linkedin.com/in/random-noob/`, or any of the countless other urls that share the same prefix.
+
+#### Good Solution: Hash Function
+
+**Approach**
+We need some entropy (randomness) to try to ensure that our codes are unique. We could try a random number generator or a hash function!
+
+Using a random number generator to create short codes involves generating a random number each time a new URL is shortened. This random number serves as the unique identifier for the URL. We can use common random number generation functions like Java's `Random()` or more robust cryptographic random number generators for increased unpredictability. The generated random number would then be used as the short code for the URL. But a random number generator does not provide enough entropy to ensure that our codes are unique.
+
+So instead, we could use a hash function like `SHA-256` to generate a fixed-size hash code. Hash functions take an input and return a deterministic, fixed-size string of characters. Pure hash functions are deterministic: the same long URL always maps to the same short code without needing to query the database. This may be desirable (deduplication) or not (if you need multiple codes per URL or want to prevent guessability/adversarial preimages). For the latter cases, add a secret salt or nonce (HMAC). Hash functions also provide a high degree of entropy, meaning that the output appears random and is unlikely to collide for different inputs.
+
+We can then take the output and encode it using a base62 encoding scheme and take just the first N characters as our short code. N is determined based on the number of characters needed to minimize collisions (e.g., 8 characters gives 62^8 ≈ 218 trillion possible codes).
+
+Why base62? It's a compact representation of numbers that uses 62 characters (a-z, A-Z, 0-9). The reason it's 62 and not the more common base64 is because we exclude `+` and `/` - the slash is a path separator in URLs and the plus sign can be interpreted as a space in query strings.
+
+Let's view a quick example of this in some pseudo code.
+```python
+input_url = "https://www.example.com/some/very/long/url"
+# Canonicalize URL first (lowercase host, strip default ports, normalize trailing slash, etc.)
+canonical_url = canonicalize(input_url)
+hash_code = hash_function(canonical_url)
+short_code_encoded = base62_encode(hash_code)
+short_code = short_code_encoded[:8] # 8 characters
+```
