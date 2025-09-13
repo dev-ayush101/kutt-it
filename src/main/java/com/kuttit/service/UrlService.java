@@ -2,18 +2,15 @@ package com.kuttit.service;
 
 import com.kuttit.model.Url;
 import com.kuttit.repository.UrlRepository;
+import com.kuttit.util.ShortCodeGenerator;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Random;
 
 @Service
 public class UrlService {
 
     private final UrlRepository urlRepository;
-
-    private static final String CHAR_SET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int CODE_LENGTH = 6;
 
     public UrlService(UrlRepository urlRepository) {
         this.urlRepository = urlRepository;
@@ -22,10 +19,13 @@ public class UrlService {
     // Create Short URL
     public String shortenUrl(String originalUrl) {
         String shortCode;
+        int attempts = 0;
 
         do {
-            shortCode = generateShortCode();
-        } while (urlRepository.findByShortCode(shortCode).isPresent());
+            String saltedUrl = originalUrl + attempts;
+            shortCode = ShortCodeGenerator.generate(saltedUrl);
+            attempts++;
+        } while (urlRepository.existsByShortCode(shortCode) && attempts < 5);
 
         Url url = Url.builder()
                 .originalUrl(originalUrl)
@@ -42,18 +42,5 @@ public class UrlService {
         return urlRepository.findByShortCode(shortCode)
                 .map(Url::getOriginalUrl)
                 .orElseThrow(() -> new RuntimeException("URL Not Found"));
-    }
-
-    // Generate random short code
-    private String generateShortCode() {
-        Random random = new Random();
-        StringBuilder sb = new StringBuilder();
-
-        for(int i = 0; i < CODE_LENGTH; i++){
-            int index = random.nextInt(CHAR_SET.length());
-            sb.append(CHAR_SET.charAt(index));
-        }
-
-        return sb.toString();
     }
 }
