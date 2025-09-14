@@ -130,6 +130,8 @@ For a URL shortener, a 302 redirect is often preferred because:
 - It prevents browsers from caching the redirect, which could cause issues if we need to change or delete the short URL in the future.
 - It allows us to track click statistics for each short URL (even though this is out of scope for this design).
 
+![URL Shortener HLD Diagram](https://raw.githubusercontent.com/dev-ayush101/kutt-it/main/src/main/resources/images/URL%20Shortener%20HLD%20Diagram.png)
+
 ## Potential Deep Dives
 At this point, we have a basic, functioning system that satisfies the functional requirements. However, there are a number of areas we could dive deeper into to reduce the likelihood of collision, support scalability, and improve performance. We can now look back at our non-functional requirements and see which ones still need to be satisfied or improved upon.
 
@@ -204,3 +206,54 @@ We also have to consider that the size of the short code continues to increase o
 To determine whether we should be concerned about length, we can do a little math. If we have 1B urls, when base62 encoded, this would result in a 6-character string. Here's why: [1,000,000,000 in base62 is '15ftgG'](https://math.tools/calculator/base/10-62)
 
 This means that even with a billion URLs, our short codes would still be quite compact. At 62^6 (approximately 56 billion URLs), we'd need to move to 7-character codes, giving us capacity for 62^7 (over 3.5 trillion) URLs. This scalability allows us to handle a massive number of URLs while keeping the codes short.
+
+### How can we ensure that redirects are fast ?
+
+When dealing with a large database of shortened URLs, finding the right match quickly becomes crucial for a smooth user experience. Without any optimization, our system would need to check every single pair of short and original URLs in the database to find the one we're looking for. This process, known as a "full table scan," can be incredibly slow, especially as the number of URLs grows into the millions or billions.
+
+**Scaling Reads**: URL shorteners showcase the extreme read-to-write ratio that makes **scaling reads** critical. With potentially millions of clicks per shortened URL, aggressive caching strategies become essential.
+
+#### Good Solution: Add an Index
+
+**Approach**
+
+To avoid a full table scan, we can use a technique called indexing. Think of an index like a book's table of contents or a library's card catalog. It provides a quick way to find what we're looking for without having to flip through every page or check every shelf. In database terms, an index creates a separate, sorted list of our short URLs, each with a pointer to where the full information is stored in the main table. This allows the database to use efficient search methods, dramatically reducing the time it takes to find a matching URL.
+
+1. B-tree Indexing: Most relational databases use B-tree indexes by default. For our URL shortener, we'd create a B-tree index on the short code column. This provides O(log n) lookup time, which is very efficient for large datasets.
+2. Primary Key: We should designate the short code as the primary key of our table. This automatically creates an index and ensures uniqueness. By making the short code the primary key, we get the benefits of both indexing and data integrity, as the database will enforce uniqueness and optimize queries on this field.
+
+With these optimizations in place, our system can now find the matching original URL in a fraction of the time it would take without them. Instead of potentially searching through millions of rows, the database can find the exact match almost instantly, greatly improving the performance of our URL shortener service.
+
+**Challenges**
+
+Relying solely on a disk-based database for redirects presents some challenges, although modern SSDs have significantly reduced the performance gap. While disk I/O is slower than memory access, it's not prohibitively slow. A typical SSD can handle around 100,000 IOPS (Input/Output Operations Per Second), which is quite fast for many applications.
+
+However, the main challenge lies in the sheer volume of read operations required. With 100M DAU, assuming each user performs an average of 5 redirects per day, we're looking at:
+`100,000,000 users * 5 redirects = 500,000,000 redirects per day`
+`500,000,000 / 86,400 seconds ≈ 5,787 redirects per second`
+
+This assumes redirects are evenly distributed throughout the day, which is unlikely. Most redirects will occur during peak hours, which means we need to design for high-traffic spikes. Multiplying by 100x to handle the spikes means we need to handle `~600k` read operations per second.
+
+Even with optimized queries and indexing, a single database instance may struggle to keep up with this volume of traffic. This high read load could lead to increased response times, potential timeouts, and might affect other database operations like URL shortening.
+
+#### Great solution: Implementing an In-Memory Cache (e.g., Redis)
+
+**Approach**
+
+To improve redirect speed, we can introduce an in-memory cache like Redis or Memcached between the application server and the database. This cache stores the frequently accessed mappings of short codes to long URLs. When a redirect request comes in, the server first checks the cache. If the short code is found in the cache (a cache hit), the server retrieves the long URL from the cache, significantly reducing latency. If not found (a cache miss), the server queries the database, retrieves the long URL, and then stores it in the cache for future requests.
+
+The key here is that instead of going to disk we access the mapping directly from memory. This difference in access speed is significant:
+- Memory access time: ~100 nanoseconds (0.0001 ms)
+- SSD access time: ~0.1 milliseconds
+- HDD access time: ~10 milliseconds
+
+This means memory access is about 1,000 times faster than SSD and 100,000 times faster than HDD. In terms of operations per second:
+- Memory: Can support millions of reads per second
+- SSD: ~100,000 IOPS (Input/Output Operations Per Second)
+- HDD: ~100-200 IOPS
+
+![URL Shortener with Redis Cache Diagram](https://raw.githubusercontent.com/dev-ayush101/kutt-it/main/src/main/resources/images/URL%20Shortener%20with%20Redis.png)
+
+**Challenges**
+
+While implementing an in-memory cache offers significant performance improvements, it does come with its own set of challenges. Cache invalidation can be complex, especially when updates or deletions occur, though this issue is minimized since URLs are mostly read-heavy and rarely change. The cache needs time to "warm up," meaning initial requests may still hit the database until the cache is populated. Memory limitations require careful decisions about cache size, eviction policies (e.g., LRU - Least Recently Used), and which entries to store. Introducing a cache adds complexity to the system architecture, and you'll want to be sure you discuss the tradeoffs and invalidation strategies with your interviewer.
