@@ -29,12 +29,12 @@ public class UrlController {
 
         return ResponseEntity.ok(Map.of(
                 "shortCode", shortCode,
-                "shortUrl", "http://localhost:8080/api/" + shortCode
+                "shortUrl", "http://localhost:8080/api/r/" + shortCode
         ));
     }
 
     // Redirect to original URL
-    @GetMapping("/{shortCode}")
+    @GetMapping("/r/{shortCode}")
     public void redirect(@PathVariable String shortCode, HttpServletResponse response) throws IOException {
 
         String originalUrl = urlService.getOriginalUrl(shortCode);
