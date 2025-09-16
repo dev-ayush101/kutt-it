@@ -79,6 +79,10 @@ Kutt-it is a fun and lightweight URL shortening service that converts long, mess
 
 For a detailed overview of the system design, including high-level architecture, scaling strategies, and deep dives into URL generation and caching, see [ARCHITECTURE.md](https://github.com/dev-ayush101/kutt-it/blob/main/ARCHITECTURE.md).
 
+### 🚀 Advanced Features Roadmap
+
+For planned enhancements to make Kutt-it more like Bitly (e.g., user auth, analytics, custom aliases), see [ADVANCED_FEATURES.md](https://github.com/dev-ayush101/kutt-it/blob/main/ADVANCED_FEATURES.md).
+
 ### 🧪 Testing
 
 Run the tests with:
