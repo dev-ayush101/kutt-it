@@ -1,0 +1,17 @@
+target/
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+*.md
+README.md
+HELP.md
+ADVANCED_FEATURES.md
+ARCHITECTURE.md
+docker-compose.yml
+Dockerfile
+.mvn/wrapper/
+mvnw
+mvnw.cmd
+
