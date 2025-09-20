@@ -9,5 +9,4 @@ public interface UrlRepository extends MongoRepository<Url, String> {
 
     Optional<Url> findByShortCode(String shortCode);
 
-    boolean existsByShortCode(String shortCode);
 }
