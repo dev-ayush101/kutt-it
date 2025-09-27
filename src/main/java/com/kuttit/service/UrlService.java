@@ -8,6 +8,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class UrlService {
@@ -19,12 +21,14 @@ public class UrlService {
     }
 
     // Create Short URL
-    public String shortenUrl(String originalUrl) {
+    public String shortenUrl(String originalUrl, String userId) {
         String shortCode = generateShortCode();
 
         Url url = Url.builder()
                 .originalUrl(originalUrl)
                 .shortCode(shortCode)
+                .createdAt(LocalDateTime.now())
+                .userId(userId)
                 .build();
 
         urlRepository.save(url);
@@ -67,5 +71,10 @@ public class UrlService {
     public String generateShortCode() {
         long id = counterService.getNextSequence("url_sequence");
         return Base62Encoder.encode(id);
+    }
+
+    // Fetch URLs by userId
+    public List<Url> getLinksByUser(String userId) {
+        return urlRepository.findByUserId(userId);
     }
 }
