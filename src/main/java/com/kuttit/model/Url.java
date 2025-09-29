@@ -23,4 +23,5 @@ public class Url {
     private String shortCode;
     private LocalDateTime createdAt;
     private String userId;
+    private String customAlias;
 }
