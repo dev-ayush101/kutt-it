@@ -1,7 +1,9 @@
 package com.kuttit.controller;
 
+import com.kuttit.dto.ShortenRequest;
 import com.kuttit.service.UrlService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,15 +22,10 @@ public class UrlController {
 
     // Create Short URL
     @PostMapping("/shorten")
-    public ResponseEntity<?> shorten(@RequestBody Map<String, String> request, @AuthenticationPrincipal UserDetails userDetails) {
-        String originalUrl = request.get("url");
-
-        if (originalUrl == null || originalUrl.isBlank()) {
-            return ResponseEntity.badRequest().body("URL is required");
-        }
+    public ResponseEntity<?> shorten(@RequestBody @Valid ShortenRequest request, @AuthenticationPrincipal UserDetails userDetails) {
 
         String userId = (userDetails != null) ?  userDetails.getUsername() : null;
-        String shortCode = urlService.shortenUrl(originalUrl, userId);
+        String shortCode = urlService.shortenUrl(request.getUrl(), request.getCustomAlias(), userId);
 
         return ResponseEntity.ok(Map.of(
                 "shortCode", shortCode,

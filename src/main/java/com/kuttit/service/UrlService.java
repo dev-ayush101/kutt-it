@@ -21,12 +21,22 @@ public class UrlService {
     }
 
     // Create Short URL
-    public String shortenUrl(String originalUrl, String userId) {
-        String shortCode = generateShortCode();
+    public String shortenUrl(String originalUrl, String customAlias, String userId) {
+        String shortCode;
+
+        if (customAlias != null && !customAlias.isBlank()) {
+            if (urlRepository.existsByShortCode(customAlias)) {
+                throw new RuntimeException("Custom alias already exists");
+            }
+            shortCode = customAlias;
+        } else {
+            shortCode = generateShortCode();
+        }
 
         Url url = Url.builder()
                 .originalUrl(originalUrl)
                 .shortCode(shortCode)
+                .customAlias(customAlias)
                 .createdAt(LocalDateTime.now())
                 .userId(userId)
                 .build();
