@@ -20,7 +20,7 @@ public class RateLimitService {
 
     // Anonymous users get 30 requests/hour
     private Bucket anonymousBucket() {
-        Bandwidth limit = Bandwidth.classic(30, Refill.greedy(30, Duration.ofHours(1)));
+        Bandwidth limit = Bandwidth.classic(10, Refill.greedy(10, Duration.ofHours(1)));
         return Bucket.builder().addLimit(limit).build();
     }
 
