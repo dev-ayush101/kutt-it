@@ -35,16 +35,21 @@ public class UrlController {
         ));
     }
 
-    @ExceptionHandler(ExpiredUrlException.class)
-    public ResponseEntity<String> handleExpiredUrl(ExpiredUrlException ex) {
-        return ResponseEntity.status(HttpStatus.GONE).body(ex.getMessage());
-    }
-
     // Redirect to original URL
     @GetMapping("/r/{shortCode}")
     public void redirect(@PathVariable String shortCode, HttpServletResponse response) throws IOException {
 
         String originalUrl = urlService.getOriginalUrl(shortCode);
         response.sendRedirect(originalUrl);
+    }
+
+    @ExceptionHandler(ExpiredUrlException.class)
+    public ResponseEntity<String> handleExpiredUrl(ExpiredUrlException ex) {
+        return ResponseEntity.status(HttpStatus.GONE).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 }

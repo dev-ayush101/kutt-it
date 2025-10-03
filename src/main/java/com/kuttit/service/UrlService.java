@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UrlService {
@@ -26,8 +27,13 @@ public class UrlService {
         String shortCode;
 
         if (customAlias != null && !customAlias.isBlank()) {
-            if (urlRepository.existsByShortCode(customAlias)) {
-                throw new RuntimeException("Custom alias already exists");
+            Optional<Url> existing = urlRepository.findByShortCode(customAlias);
+            if (existing.isPresent()) {
+                boolean isExpired = existing.get().getExpirationDate() != null && LocalDateTime.now().isAfter(existing.get().getExpirationDate());
+                if (!isExpired) {
+                    throw new RuntimeException("Custom alias already exists");
+                }
+                urlRepository.delete(existing.get());
             }
             shortCode = customAlias;
         } else {
