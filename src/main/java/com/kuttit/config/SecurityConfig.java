@@ -1,6 +1,7 @@
 package com.kuttit.config;
 
 import com.kuttit.security.JwtAuthFilter;
+import com.kuttit.security.RateLimitFilter;
 import com.kuttit.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +24,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserService userService;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public AuthenticationProvider authenticationProvider(BCryptPasswordEncoder passwordEncoder) {
@@ -48,9 +50,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/r/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/shorten").permitAll()
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(rateLimitFilter, JwtAuthFilter.class);
 
         return http.build();
     }
