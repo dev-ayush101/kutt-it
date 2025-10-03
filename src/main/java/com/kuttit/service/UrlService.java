@@ -1,5 +1,6 @@
 package com.kuttit.service;
 
+import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
 import com.kuttit.repository.UrlRepository;
 import com.kuttit.util.Base62Encoder;
@@ -21,7 +22,7 @@ public class UrlService {
     }
 
     // Create Short URL
-    public String shortenUrl(String originalUrl, String customAlias, String userId) {
+    public String shortenUrl(String originalUrl, String customAlias, String userId, LocalDateTime expirationDate) {
         String shortCode;
 
         if (customAlias != null && !customAlias.isBlank()) {
@@ -39,6 +40,7 @@ public class UrlService {
                 .customAlias(customAlias)
                 .createdAt(LocalDateTime.now())
                 .userId(userId)
+                .expirationDate(expirationDate)
                 .build();
 
         urlRepository.save(url);
@@ -63,7 +65,12 @@ public class UrlService {
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new RuntimeException("URL Not Found"));
 
-        // 3. Store in Redis Cache with TTL of 12hrs
+        // 3. Check Expiration
+        if (url.getExpirationDate() != null && LocalDateTime.now().isAfter(url.getExpirationDate())) {
+            throw new ExpiredUrlException("URL has expired");
+        }
+
+        // 4. Store in Redis Cache with TTL of 12hrs
         redisTemplate.opsForValue().set(
                 shortCode,
                 url.getOriginalUrl(),

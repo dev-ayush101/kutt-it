@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.URL;
 
+import java.time.LocalDateTime;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -18,4 +20,6 @@ public class ShortenRequest {
 
     @Pattern(regexp = "^[a-zA-Z0-9-]{3,30}$", message = "Alias must be 3-30 characters, alphanumeric and hyphens only")
     private String customAlias;
+
+    private LocalDateTime expirationDate;
 }

@@ -24,4 +24,5 @@ public class Url {
     private LocalDateTime createdAt;
     private String userId;
     private String customAlias;
+    private LocalDateTime expirationDate;
 }
