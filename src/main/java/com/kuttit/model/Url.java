@@ -25,4 +25,5 @@ public class Url {
     private String userId;
     private String customAlias;
     private LocalDateTime expirationDate;
+    private boolean deleted =  false;
 }
