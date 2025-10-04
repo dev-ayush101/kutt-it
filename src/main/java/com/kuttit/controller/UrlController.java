@@ -1,7 +1,9 @@
 package com.kuttit.controller;
 
 import com.kuttit.dto.ShortenRequest;
+import com.kuttit.dto.UpdateUrlRequest;
 import com.kuttit.exception.ExpiredUrlException;
+import com.kuttit.model.Url;
 import com.kuttit.service.UrlService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -51,5 +53,19 @@ public class UrlController {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    // Update URL
+    @PutMapping("/links/{shortCode}")
+    public ResponseEntity<?> updateLink(@PathVariable String shortCode, @RequestBody @Valid UpdateUrlRequest request, @AuthenticationPrincipal UserDetails userDetails) {
+        Url updated = urlService.updateUrl(shortCode, request, userDetails.getUsername());
+        return ResponseEntity.ok(updated);
+    }
+
+    // Delete URL - soft delete
+    @DeleteMapping("/links/{shortCode}")
+    public ResponseEntity<?> deleteLink(@PathVariable String shortCode, @AuthenticationPrincipal UserDetails userDetails) {
+        urlService.deleteUrl(shortCode, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Link deleted successfully"));
     }
 }

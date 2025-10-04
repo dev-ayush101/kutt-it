@@ -1,5 +1,6 @@
 package com.kuttit.service;
 
+import com.kuttit.dto.UpdateUrlRequest;
 import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
 import com.kuttit.repository.UrlRepository;
@@ -12,6 +13,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UrlService {
@@ -71,6 +73,10 @@ public class UrlService {
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new RuntimeException("URL Not Found"));
 
+        if (url.isDeleted()) {
+            throw new RuntimeException("URL has been deleted");
+        }
+
         // 3. Check Expiration
         if (url.getExpirationDate() != null && LocalDateTime.now().isAfter(url.getExpirationDate())) {
             throw new ExpiredUrlException("URL has expired");
@@ -98,6 +104,67 @@ public class UrlService {
 
     // Fetch URLs by userId
     public List<Url> getLinksByUser(String userId) {
-        return urlRepository.findByUserId(userId);
+        return urlRepository.findByUserId(userId).stream()
+                .filter(url -> !url.isDeleted())
+                .collect(Collectors.toList());
+    }
+
+    // Get URL by short code
+    public Url getUrlByShortCode(String shortCode) {
+        return urlRepository.findByShortCode(shortCode).orElseThrow(null);
+    }
+
+    // Update URL by short code
+    public Url updateUrl(String shortCode, UpdateUrlRequest request, String userId) {
+        Url url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new RuntimeException("URL Not Found"));
+
+        if (url.isDeleted()) {
+            throw new RuntimeException("URL has been deleted");
+        }
+
+        if (!userId.equals(url.getUserId())) {
+            throw new RuntimeException("You do not own this link");
+        }
+
+        if (request.getOriginalUrl() != null && !request.getOriginalUrl().isBlank()) {
+            url.setOriginalUrl(request.getOriginalUrl());
+        }
+
+        if (request.getCustomAlias() != null && !request.getCustomAlias().isBlank() && !request.getCustomAlias().equals(url.getShortCode())) {
+            if (urlRepository.existsByShortCode(request.getCustomAlias())) {
+                throw new RuntimeException("Alias already in use");
+            }
+
+            redisTemplate.delete(url.getShortCode());
+            url.setShortCode(request.getCustomAlias());
+            url.setCustomAlias(request.getCustomAlias());
+        }
+
+        if (request.getExpirationDate() != null) {
+            url.setExpirationDate(request.getExpirationDate());
+        }
+
+        urlRepository.save(url);
+        redisTemplate.delete(shortCode);
+        return url;
+    }
+
+    // Delete URL by short code
+    public void deleteUrl(String shortCode, String userId) {
+        Url url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new RuntimeException("URL Not Found"));
+
+        if (url.isDeleted()) {
+            throw new RuntimeException("URL has been deleted");
+        }
+
+        if (!userId.equals(url.getUserId())) {
+            throw new RuntimeException("You do not own this link");
+        }
+
+        url.setDeleted(true);
+        urlRepository.save(url);
+        redisTemplate.delete(shortCode);
     }
 }
