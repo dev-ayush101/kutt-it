@@ -3,6 +3,7 @@ package com.kuttit.service;
 import com.kuttit.model.Click;
 import com.kuttit.repository.ClickRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -16,7 +17,7 @@ public class ClickService {
 
     private final ClickRepository clickRepository;
 
-
+    @Async
     public void logClick(String shortCode, String ip, String userAgent, String referrer) {
         Click click = Click.builder()
                 .shortCode(shortCode)
