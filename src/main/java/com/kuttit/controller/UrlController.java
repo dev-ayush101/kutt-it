@@ -4,7 +4,9 @@ import com.kuttit.dto.ShortenRequest;
 import com.kuttit.dto.UpdateUrlRequest;
 import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
+import com.kuttit.service.ClickService;
 import com.kuttit.service.UrlService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.util.Map;
 public class UrlController {
 
     private final UrlService urlService;
+    private final ClickService clickService;
 
     // Create Short URL
     @PostMapping("/shorten")
@@ -39,9 +42,15 @@ public class UrlController {
 
     // Redirect to original URL
     @GetMapping("/r/{shortCode}")
-    public void redirect(@PathVariable String shortCode, HttpServletResponse response) throws IOException {
+    public void redirect(@PathVariable String shortCode, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         String originalUrl = urlService.getOriginalUrl(shortCode);
+
+        String ip = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        String referrer = request.getHeader("Referer");
+        clickService.logClick(shortCode, ip, userAgent, referrer);
+
         response.sendRedirect(originalUrl);
     }
 
@@ -67,5 +76,15 @@ public class UrlController {
     public ResponseEntity<?> deleteLink(@PathVariable String shortCode, @AuthenticationPrincipal UserDetails userDetails) {
         urlService.deleteUrl(shortCode, userDetails.getUsername());
         return ResponseEntity.ok(Map.of("message", "Link deleted successfully"));
+    }
+
+    // Log URL redirect analytics
+    @GetMapping("/analytics/{shortCode}")
+    public ResponseEntity<?> getAnalytics(@PathVariable String shortCode, @AuthenticationPrincipal UserDetails userDetails) {
+        Url url = urlService.getUrlByShortCode(shortCode);
+        if (url == null || !url.getUserId().equals(userDetails.getUsername())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
+        }
+        return ResponseEntity.ok(clickService.getAnalytics(shortCode));
     }
 }
