@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/shorten").permitAll()
+                        .requestMatchers("/api/shorten/bulk").authenticated()
                         .requestMatchers("/api/links/**").authenticated()
                         .requestMatchers("/api/analytics/**").authenticated()
                         .anyRequest().authenticated())

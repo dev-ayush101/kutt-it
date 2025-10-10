@@ -1,5 +1,6 @@
 package com.kuttit.controller;
 
+import com.kuttit.dto.BulkShortenRequest;
 import com.kuttit.dto.ShortenRequest;
 import com.kuttit.dto.UpdateUrlRequest;
 import com.kuttit.exception.ExpiredUrlException;
@@ -17,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -86,5 +88,13 @@ public class UrlController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
         }
         return ResponseEntity.ok(clickService.getAnalytics(shortCode));
+    }
+
+    // Bulk URLs
+    @PostMapping("/shorten/bulk")
+    public ResponseEntity<?> shortenBulk(@RequestBody @Valid BulkShortenRequest request, @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = userDetails.getUsername();
+        List<Map<String, Object>> results = urlService.shortenBulk(request.getUrls(), userId);
+        return ResponseEntity.ok(results);
     }
 }

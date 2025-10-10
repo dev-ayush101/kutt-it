@@ -1,5 +1,6 @@
 package com.kuttit.service;
 
+import com.kuttit.dto.ShortenRequest;
 import com.kuttit.dto.UpdateUrlRequest;
 import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -166,5 +168,24 @@ public class UrlService {
         url.setDeleted(true);
         urlRepository.save(url);
         redisTemplate.delete(shortCode);
+    }
+
+    // Bulk Shortening of URLs
+    public List<Map<String, Object>> shortenBulk(List<ShortenRequest> requests, String userId) {
+        return requests.stream().map(req -> {
+            try {
+                String shortCode = shortenUrl(req.getUrl(), req.getCustomAlias(), userId, req.getExpirationDate());
+                return Map.<String, Object>of(
+                        "originalUrl", req.getUrl(),
+                        "shortCode", shortCode,
+                        "shortUrl", "http://localhost:8080/api/r/" + shortCode
+                );
+            } catch (Exception e) {
+                return Map.<String, Object>of(
+                        "originalUrl", req.getUrl(),
+                        "error", e.getMessage()
+                );
+            }
+        }).collect(Collectors.toList());
     }
 }

@@ -14,7 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 public class BulkShortenRequest {
 
+    @Valid
     @NotEmpty
     @Size(max = 120, message = "Maximum 120 URLs per bulk request")
-    private List<@Valid ShortenRequest> urls;
+    private List<ShortenRequest> urls;
 }
