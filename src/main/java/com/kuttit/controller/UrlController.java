@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -47,6 +49,7 @@ public class UrlController {
     public void redirect(@PathVariable String shortCode, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         String originalUrl = urlService.getOriginalUrl(shortCode);
+        log.info("Redirecting shortCode {} to {}", shortCode, originalUrl);
 
         String ip = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
@@ -58,11 +61,13 @@ public class UrlController {
 
     @ExceptionHandler(ExpiredUrlException.class)
     public ResponseEntity<String> handleExpiredUrl(ExpiredUrlException ex) {
+        log.warn("Attempt to access expired URL: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.GONE).body(ex.getMessage());
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+        log.warn("Runtime exception: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 

@@ -6,6 +6,7 @@ import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
 import com.kuttit.repository.UrlRepository;
 import com.kuttit.util.Base62Encoder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class UrlService {
 
@@ -67,7 +69,7 @@ public class UrlService {
         String cachedUrl = redisTemplate.opsForValue().get(shortCode);
 
         if (cachedUrl != null) {
-            System.out.println("Cache hit for shortCode: " + shortCode);
+            log.info("Cache hit for shortCode: {}", shortCode);
             return cachedUrl;
         }
 
@@ -91,7 +93,7 @@ public class UrlService {
                 Duration.ofHours(12)
         );
 
-        System.out.println("Cache miss for shortCode: " + shortCode + ". Caching original URL.");
+        log.info("Cache miss for shortCode: {}. Fetched from MongoDB and cached.", shortCode);
 
         return url.getOriginalUrl();
     }
