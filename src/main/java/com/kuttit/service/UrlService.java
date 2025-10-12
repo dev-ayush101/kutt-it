@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,7 +30,7 @@ public class UrlService {
     }
 
     // Create Short URL
-    public String shortenUrl(String originalUrl, String customAlias, String userId, LocalDateTime expirationDate) {
+    public String shortenUrl(String originalUrl, String customAlias, String userId, LocalDateTime expirationDate, List<String> tags) {
         String shortCode;
 
         if (customAlias != null && !customAlias.isBlank()) {
@@ -53,6 +54,7 @@ public class UrlService {
                 .createdAt(LocalDateTime.now())
                 .userId(userId)
                 .expirationDate(expirationDate)
+                .tags(tags != null ? tags : new ArrayList<>())
                 .build();
 
         urlRepository.save(url);
@@ -176,7 +178,7 @@ public class UrlService {
     public List<Map<String, Object>> shortenBulk(List<ShortenRequest> requests, String userId) {
         return requests.stream().map(req -> {
             try {
-                String shortCode = shortenUrl(req.getUrl(), req.getCustomAlias(), userId, req.getExpirationDate());
+                String shortCode = shortenUrl(req.getUrl(), req.getCustomAlias(), userId, req.getExpirationDate(), req.getTags());
                 return Map.<String, Object>of(
                         "originalUrl", req.getUrl(),
                         "shortCode", shortCode,
@@ -189,5 +191,12 @@ public class UrlService {
                 );
             }
         }).collect(Collectors.toList());
+    }
+
+    // Fetch the links by their tags
+    public List<Url> getLinksByTags(String userId, String tag) {
+        return urlRepository.findByUserIdAndTagsContaining(userId, tag).stream()
+                .filter(url -> !url.isDeleted())
+                .collect(Collectors.toList());
     }
 }

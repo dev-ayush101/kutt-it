@@ -39,7 +39,7 @@ public class UrlController {
     public ResponseEntity<?> shorten(@RequestBody @Valid ShortenRequest request, @AuthenticationPrincipal UserDetails userDetails) {
 
         String userId = (userDetails != null) ?  userDetails.getUsername() : null;
-        String shortCode = urlService.shortenUrl(request.getUrl(), request.getCustomAlias(), userId, request.getExpirationDate());
+        String shortCode = urlService.shortenUrl(request.getUrl(), request.getCustomAlias(), userId, request.getExpirationDate(), request.getTags());
 
         return ResponseEntity.ok(Map.of(
                 "shortCode", shortCode,
@@ -86,6 +86,12 @@ public class UrlController {
     public ResponseEntity<?> deleteLink(@PathVariable String shortCode, @AuthenticationPrincipal UserDetails userDetails) {
         urlService.deleteUrl(shortCode, userDetails.getUsername());
         return ResponseEntity.ok(Map.of("message", "Link deleted successfully"));
+    }
+
+    // Get Links by Tags
+    @GetMapping("/links/tags/{tag}")
+    public ResponseEntity<?> getLinksByTag(@PathVariable String tag, @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(urlService.getLinksByTags(userDetails.getUsername(), tag));
     }
 
     // Log URL redirect analytics
