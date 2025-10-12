@@ -60,13 +60,13 @@ public class UrlService {
     }
 
     @Autowired
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
 
     // Get original URL
     public String getOriginalUrl(String shortCode) {
 
         // 1. Check Redis Cache
-        String cachedUrl = redisTemplate.opsForValue().get(shortCode);
+        String cachedUrl = (String) redisTemplate.opsForValue().get(shortCode);
 
         if (cachedUrl != null) {
             log.info("Cache hit for shortCode: {}", shortCode);
@@ -115,7 +115,7 @@ public class UrlService {
 
     // Get URL by short code
     public Url getUrlByShortCode(String shortCode) {
-        return urlRepository.findByShortCode(shortCode).orElseThrow(null);
+        return urlRepository.findByShortCode(shortCode).orElse(null);
     }
 
     // Update URL by short code

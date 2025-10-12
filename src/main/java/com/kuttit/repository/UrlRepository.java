@@ -2,6 +2,7 @@ package com.kuttit.repository;
 
 import com.kuttit.model.Url;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,7 +16,6 @@ public interface UrlRepository extends MongoRepository<Url, String> {
 
     boolean existsByShortCode(String shortCode);
 
-    List<Url> findByExpirationDateIsNotNullAndExpirationDateBefore(LocalDateTime now);
-
-    void deleteByExpirationDateIsNotNullAndExpirationDateBefore(LocalDateTime now);
+    @Query(value = "{'$and': [{'expirationDate': {$ne: null}}, {'expirationDate': {$lt: ?0}}]}", delete = true)
+    void deleteExpiredUrls(LocalDateTime now);
 }

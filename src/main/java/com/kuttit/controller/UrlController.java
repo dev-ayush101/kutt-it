@@ -6,6 +6,7 @@ import com.kuttit.dto.UpdateUrlRequest;
 import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
 import com.kuttit.service.ClickService;
+import com.kuttit.service.QrCodeService;
 import com.kuttit.service.UrlService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,6 +32,7 @@ public class UrlController {
 
     private final UrlService urlService;
     private final ClickService clickService;
+    private final QrCodeService qrCodeService;
 
     // Create Short URL
     @PostMapping("/shorten")
@@ -101,5 +104,16 @@ public class UrlController {
         String userId = userDetails.getUsername();
         List<Map<String, Object>> results = urlService.shortenBulk(request.getUrls(), userId);
         return ResponseEntity.ok(results);
+    }
+
+    // QR Code Generation
+    @GetMapping(value = "/qr/{shortCode}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getQrCode(@PathVariable String shortCode) {
+        Url url = urlService.getUrlByShortCode(shortCode);
+        if (url == null || url.isDeleted()) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] qrCode = qrCodeService.getQrCode(shortCode);
+        return ResponseEntity.ok(qrCode);
     }
 }

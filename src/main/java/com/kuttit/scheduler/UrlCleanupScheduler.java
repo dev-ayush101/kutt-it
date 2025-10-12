@@ -15,6 +15,6 @@ public class UrlCleanupScheduler {
 
     @Scheduled(cron = "0 0 * * * *")
     public void deleteExpiredUrls() {
-        urlRepository.deleteByExpirationDateIsNotNullAndExpirationDateBefore(LocalDateTime.now());
+        urlRepository.deleteExpiredUrls(LocalDateTime.now());
     }
 }
