@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document(collection = "urls")
 @Data
@@ -33,4 +35,5 @@ public class Url {
     @Indexed
     private LocalDateTime expirationDate;
     private boolean deleted =  false;
+    private List<String> tags =  new ArrayList<>();
 }

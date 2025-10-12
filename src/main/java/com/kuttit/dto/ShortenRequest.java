@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.URL;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -22,4 +24,6 @@ public class ShortenRequest {
     private String customAlias;
 
     private LocalDateTime expirationDate;
+
+    private List<String> tags;
 }

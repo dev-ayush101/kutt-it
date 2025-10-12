@@ -18,4 +18,6 @@ public interface UrlRepository extends MongoRepository<Url, String> {
 
     @Query(value = "{'$and': [{'expirationDate': {$ne: null}}, {'expirationDate': {$lt: ?0}}]}", delete = true)
     void deleteExpiredUrls(LocalDateTime now);
+
+    List<Url> findByUserIdAndTagsContaining(String userId, String tag);
 }
