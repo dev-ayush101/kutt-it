@@ -4,35 +4,42 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.time.Duration;
-import java.util.Base64;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class QrCodeService {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    @Value("${qr.storage.path}")
+    private String storagePath;
 
-    public byte[] getQrCode(String shortCode) {
-        String cacheKey = "qr:" + shortCode;
+    @PostConstruct
+    public void init() throws IOException {
+        Files.createDirectories(Paths.get(storagePath));
+        log.info("QR storage directory ready: {}", storagePath);
+    }
 
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            log.info("QR cache hit for shortCode: {}", shortCode);
-            return Base64.getDecoder().decode((String) cached);
+    public String getQrCodeUrl(String shortCode) throws IOException {
+        Path filePath = Paths.get(storagePath, shortCode + ".png");
+
+        if (Files.exists(filePath)) {
+            log.info("QR file cache hit for shortCode: {}", shortCode);
+        } else {
+            byte[] qrBytes = generateQrCode("http://localhost:8080/api/r/" + shortCode);
+            Files.write(filePath, qrBytes);
+            log.info("QR generated and saved for shortCode: {}", shortCode);
         }
 
-        byte[] qrBytes = generateQrCode("http://localhost:8080/api/r/" + shortCode);
-        redisTemplate.opsForValue().set(cacheKey, Base64.getEncoder().encodeToString(qrBytes), Duration.ofHours(24));
-        log.info("QR generated and cached for shortCode: {}", shortCode);
-        return qrBytes;
+        return "http://localhost:8080/qr/" + shortCode + ".png";
     }
 
     private byte[] generateQrCode(String url) {
@@ -43,7 +50,7 @@ public class QrCodeService {
             MatrixToImageWriter.writeToStream(matrix, "PNG", outputStream);
             return outputStream.toByteArray();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate QR code", e);
+            throw new RuntimeException("Failed to generate QR code");
         }
     }
 }

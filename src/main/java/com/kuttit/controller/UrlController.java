@@ -113,13 +113,13 @@ public class UrlController {
     }
 
     // QR Code Generation
-    @GetMapping(value = "/qr/{shortCode}", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<byte[]> getQrCode(@PathVariable String shortCode) {
+    @GetMapping("/qr/{shortCode}")
+    public ResponseEntity<?> getQrCode(@PathVariable String shortCode) throws IOException {
         Url url = urlService.getUrlByShortCode(shortCode);
         if (url == null || url.isDeleted()) {
             return ResponseEntity.notFound().build();
         }
-        byte[] qrCode = qrCodeService.getQrCode(shortCode);
-        return ResponseEntity.ok(qrCode);
+        String qrUrl = qrCodeService.getQrCodeUrl(shortCode);
+        return ResponseEntity.ok(Map.of("url", qrUrl));
     }
 }
