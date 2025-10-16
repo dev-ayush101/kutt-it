@@ -11,10 +11,10 @@ analytics, link management, QR code generation, and more.
 - **User Authentication** — JWT-based register/login with BCrypt password hashing
 - **Link Management** — Edit or soft-delete your links (PUT/DELETE)
 - **Click Analytics** — Async click tracking with per-link stats (total clicks, clicks by date)
-- **Bulk Shortening** — Shorten up to 100 URLs in a single request
+- **Bulk Shortening** — Shorten up to 120 URLs in a single request
 - **QR Code Generation** — Generate and persist QR codes as static PNG files
 - **Link Tags** — Organize links with tags and filter by tag
-- **Rate Limiting** — Bucket4j-based rate limiting (100 req/hr authenticated, 10 req/hr anonymous)
+- **Rate Limiting** — Bucket4j-based rate limiting (120 req/hr authenticated, 10 req/hr anonymous)
 - **Redis Caching** — Fast redirects with 12hr TTL; analytics cached with 5min TTL
 - **MongoDB Indexes** — Indexed on shortCode, userId, expirationDate for fast queries
 - **Prometheus Monitoring** — Metrics exposed at `/actuator/prometheus`
