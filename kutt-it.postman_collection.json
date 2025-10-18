@@ -1,0 +1,1047 @@
+{
+  "info": {
+    "name": "Kutt-it API - Complete Test Suite",
+    "description": "Run the [Setup] folder first in order. Collection variables are auto-populated by test scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",        "value": "http://localhost:8080" },
+    { "key": "token",          "value": "" },
+    { "key": "token2",         "value": "" },
+    { "key": "email1",         "value": "user1@kuttit.test" },
+    { "key": "email2",         "value": "user2@kuttit.test" },
+    { "key": "shortCode",      "value": "" },
+    { "key": "anonShortCode",  "value": "" },
+    { "key": "expiredCode",              "value": "" },
+    { "key": "expiredCodeForRedirect",   "value": "" },
+    { "key": "taggedCode",     "value": "" },
+    { "key": "deleteCode",     "value": "" },
+    { "key": "preDeletedCode", "value": "" },
+    { "key": "updateCode",     "value": "" },
+    { "key": "testAlias",      "value": "" },
+    { "key": "newAlias",       "value": "" },
+    { "key": "uniqueEmail",    "value": "" }
+  ],
+  "item": [
+    {
+      "name": "[Setup] Initialize Test Data",
+      "description": "Run all items in this folder in order before running any other tests.",
+      "item": [
+        {
+          "name": "S1 - Register User 1",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"username\":\"user1\",\"email\":\"{{email1}}\",\"password\":\"Password123!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "    pm.test('S1: Registered User 1', () => pm.response.to.have.status(200));",
+            "    pm.collectionVariables.set('token', pm.response.json().token);",
+            "} else {",
+            "    pm.sendRequest({",
+            "        url: pm.collectionVariables.get('baseUrl') + '/api/auth/login',",
+            "        method: 'POST',",
+            "        header: [{ key: 'Content-Type', value: 'application/json' }],",
+            "        body: { mode: 'raw', raw: JSON.stringify({ email: pm.collectionVariables.get('email1'), password: 'Password123!' }) }",
+            "    }, (err, res) => {",
+            "        pm.test('S1: Login fallback for User 1', () => pm.expect(res.code).to.equal(200));",
+            "        pm.collectionVariables.set('token', res.json().token);",
+            "    });",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "S2 - Register User 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"username\":\"user2\",\"email\":\"{{email2}}\",\"password\":\"Password123!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "    pm.test('S2: Registered User 2', () => pm.response.to.have.status(200));",
+            "    pm.collectionVariables.set('token2', pm.response.json().token);",
+            "} else {",
+            "    pm.sendRequest({",
+            "        url: pm.collectionVariables.get('baseUrl') + '/api/auth/login',",
+            "        method: 'POST',",
+            "        header: [{ key: 'Content-Type', value: 'application/json' }],",
+            "        body: { mode: 'raw', raw: JSON.stringify({ email: pm.collectionVariables.get('email2'), password: 'Password123!' }) }",
+            "    }, (err, res) => {",
+            "        pm.test('S2: Login fallback for User 2', () => pm.expect(res.code).to.equal(200));",
+            "        pm.collectionVariables.set('token2', res.json().token);",
+            "    });",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "S3 - Create URL for User 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/user1-main\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('shortCode', pm.response.json().shortCode);"
+          ]}}]
+        },
+        {
+          "name": "S4 - Create Anonymous URL",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/anonymous\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('anonShortCode', pm.response.json().shortCode);"
+          ]}}]
+        },
+        {
+          "name": "S5 - Create Expired URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/expired\",\"expirationDate\":\"2020-01-01T00:00:00\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('expiredCode', pm.response.json().shortCode);"
+          ]}}]
+        },
+        {
+          "name": "S5b - Create Expired URL for Redirect Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/expired-redirect\",\"expirationDate\":\"2020-01-01T00:00:00\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('expiredCodeForRedirect', pm.response.json().shortCode);"
+          ]}}]
+        },
+        {
+          "name": "S6 - Create Tagged URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/tagged\",\"tags\":[\"social\",\"work\"]}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('taggedCode', pm.response.json().shortCode);"
+          ]}}]
+        },
+        {
+          "name": "S7 - Create URL for Delete Tests",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/to-delete\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('deleteCode', pm.response.json().shortCode);"
+          ]}}]
+        },
+        {
+          "name": "S8a - Create URL to Pre-Delete",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/pre-deleted\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('preDeletedCode', pm.response.json().shortCode);"
+          ]}}]
+        },
+        {
+          "name": "S8b - Delete the Pre-Delete URL",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/links/{{preDeletedCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}]
+        },
+        {
+          "name": "S9 - Create URL for Update Tests",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/to-update\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('updateCode', pm.response.json().shortCode);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "A1 - Register Success",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+              "pm.collectionVariables.set('uniqueEmail', 'test_' + Date.now() + '@kuttit.test');"
+            ]}},
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "const j = pm.response.json();",
+              "pm.test('Has token', () => pm.expect(j.token).to.be.a('string'));",
+              "pm.test('Has email', () => pm.expect(j.email).to.eql(pm.collectionVariables.get('uniqueEmail')));",
+              "pm.test('Has username', () => pm.expect(j.username).to.eql('tempuser'));"
+            ]}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"username\":\"tempuser\",\"email\":\"{{uniqueEmail}}\",\"password\":\"Password123!\"}" }
+          }
+        },
+        {
+          "name": "A2 - Register Duplicate Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"username\":\"dupe\",\"email\":\"{{email1}}\",\"password\":\"Password123!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Rejects duplicate email', () => pm.expect(pm.response.code).to.not.eql(200));",
+            "pm.test('Error mentions email', () => pm.expect(pm.response.text()).to.include('Email already in use'));"
+          ]}}]
+        },
+        {
+          "name": "A3 - Register Missing Fields",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"email\":\"incomplete@kuttit.test\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "A4 - Register Invalid Email Format",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": { "mode": "raw", "raw": "{\"username\":\"u\",\"email\":\"notanemail\",\"password\":\"Password123!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "A5 - Login Success",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{email1}}\",\"password\":\"Password123!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('Has token', () => pm.expect(j.token).to.be.a('string'));",
+            "pm.test('Email matches', () => pm.expect(j.email).to.eql(pm.collectionVariables.get('email1')));",
+            "pm.collectionVariables.set('token', j.token);"
+          ]}}]
+        },
+        {
+          "name": "A6 - Login Wrong Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"email\":\"{{email1}}\",\"password\":\"WrongPassword!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Rejects wrong password', () => pm.expect(pm.response.code).to.not.eql(200));",
+            "pm.test('Error message', () => pm.expect(pm.response.text()).to.include('Invalid email or password'));"
+          ]}}]
+        },
+        {
+          "name": "A7 - Login Unknown Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{\"email\":\"nobody@kuttit.test\",\"password\":\"Password123!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Rejects unknown user', () => pm.expect(pm.response.code).to.not.eql(200));",
+            "pm.test('Same error as wrong password', () => pm.expect(pm.response.text()).to.include('Invalid email or password'));"
+          ]}}]
+        },
+        {
+          "name": "A8 - Login Missing Fields",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Shorten URL",
+      "item": [
+        {
+          "name": "SH1 - Shorten Anonymous",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/anon-shorten\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('Has shortCode', () => pm.expect(j.shortCode).to.be.a('string'));",
+            "pm.test('shortUrl contains shortCode', () => pm.expect(j.shortUrl).to.include(j.shortCode));"
+          ]}}]
+        },
+        {
+          "name": "SH2 - Shorten Authenticated",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/auth-shorten\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has shortCode', () => pm.expect(pm.response.json().shortCode).to.be.a('string'));"
+          ]}}]
+        },
+        {
+          "name": "SH3 - Custom Alias New",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+              "pm.collectionVariables.set('testAlias', 'alias-' + Date.now().toString().slice(-6));"
+            ]}},
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('shortCode matches alias', () => pm.expect(pm.response.json().shortCode).to.eql(pm.collectionVariables.get('testAlias')));"
+            ]}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/custom\",\"customAlias\":\"{{testAlias}}\"}" }
+          }
+        },
+        {
+          "name": "SH4 - Custom Alias Already Taken",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/custom2\",\"customAlias\":\"{{testAlias}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Error message', () => pm.expect(pm.response.text()).to.include('Custom alias already exists'));"
+          ]}}]
+        },
+        {
+          "name": "SH5 - Reuse Expired Alias",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/reuse\",\"customAlias\":\"{{expiredCode}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 - expired alias recycled', () => pm.response.to.have.status(200));",
+            "pm.test('shortCode is the reused alias', () => pm.expect(pm.response.json().shortCode).to.eql(pm.collectionVariables.get('expiredCode')));"
+          ]}}]
+        },
+        {
+          "name": "SH6 - Custom Alias Too Short",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com\",\"customAlias\":\"ab\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "SH7 - Custom Alias Special Characters",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com\",\"customAlias\":\"bad alias!\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "SH8 - With Expiration Date",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/expiring\",\"expirationDate\":\"2030-01-01T00:00:00\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has shortCode', () => pm.expect(pm.response.json().shortCode).to.be.a('string'));"
+          ]}}]
+        },
+        {
+          "name": "SH9 - With Tags",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/tagged2\",\"tags\":[\"news\",\"dev\"]}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));"
+          ]}}]
+        },
+        {
+          "name": "SH10 - Invalid URL",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"not-a-url\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "SH11 - Blank URL",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Redirect",
+      "description": "R1 has followRedirects disabled to assert the 302 directly.",
+      "item": [
+        {
+          "name": "R1 - Valid Code",
+          "protocolProfileBehavior": { "followRedirects": false },
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/r/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 302', () => pm.response.to.have.status(302));",
+            "pm.test('Location header present', () => pm.expect(pm.response.headers.get('Location')).to.be.a('string'));"
+          ]}}]
+        },
+        {
+          "name": "R2 - Invalid Code",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/r/doesnotexist99999"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Error message', () => pm.expect(pm.response.text()).to.include('URL Not Found'));"
+          ]}}]
+        },
+        {
+          "name": "R3 - Expired URL",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/r/{{expiredCodeForRedirect}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 410 Gone', () => pm.response.to.have.status(410));",
+            "pm.test('Error message', () => pm.expect(pm.response.text()).to.include('URL has expired'));"
+          ]}}]
+        },
+        {
+          "name": "R4 - Soft-Deleted URL",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/r/{{preDeletedCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Error message', () => pm.expect(pm.response.text()).to.include('URL has been deleted'));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Manage Links",
+      "item": [
+        {
+          "name": "ML1 - Update Original URL",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/links/{{shortCode}}",
+            "body": { "mode": "raw", "raw": "{\"originalUrl\":\"https://example.com/updated\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('originalUrl updated', () => pm.expect(pm.response.json().originalUrl).to.eql('https://example.com/updated'));"
+          ]}}]
+        },
+        {
+          "name": "ML2 - Update Alias",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+              "pm.collectionVariables.set('newAlias', 'upd-' + Date.now().toString().slice(-6));"
+            ]}},
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('shortCode updated', () => pm.expect(pm.response.json().shortCode).to.eql(pm.collectionVariables.get('newAlias')));",
+              "pm.collectionVariables.set('updateCode', pm.collectionVariables.get('newAlias'));"
+            ]}}
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/links/{{updateCode}}",
+            "body": { "mode": "raw", "raw": "{\"customAlias\":\"{{newAlias}}\"}" }
+          }
+        },
+        {
+          "name": "ML3 - Update Alias Already Taken",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/links/{{updateCode}}",
+            "body": { "mode": "raw", "raw": "{\"customAlias\":\"{{shortCode}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Alias in use error', () => pm.expect(pm.response.text()).to.include('Alias already in use'));"
+          ]}}]
+        },
+        {
+          "name": "ML4 - Update Expiration Date",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/links/{{shortCode}}",
+            "body": { "mode": "raw", "raw": "{\"expirationDate\":\"2035-12-31T23:59:59\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Expiration updated', () => pm.expect(pm.response.json().expirationDate).to.include('2035'));"
+          ]}}]
+        },
+        {
+          "name": "ML5 - Update Not Owner",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token2}}" }
+            ],
+            "url": "{{baseUrl}}/api/links/{{shortCode}}",
+            "body": { "mode": "raw", "raw": "{\"originalUrl\":\"https://malicious.com\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Ownership error', () => pm.expect(pm.response.text()).to.include('You do not own this link'));"
+          ]}}]
+        },
+        {
+          "name": "ML6 - Update Already Deleted",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/links/{{preDeletedCode}}",
+            "body": { "mode": "raw", "raw": "{\"originalUrl\":\"https://example.com/update-deleted\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Deleted error', () => pm.expect(pm.response.text()).to.include('URL has been deleted'));"
+          ]}}]
+        },
+        {
+          "name": "ML7 - Update Unauthenticated",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/links/{{shortCode}}",
+            "body": { "mode": "raw", "raw": "{\"originalUrl\":\"https://example.com\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}]
+        },
+        {
+          "name": "ML8 - Delete Success",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/links/{{deleteCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Success message', () => pm.expect(pm.response.json().message).to.eql('Link deleted successfully'));"
+          ]}}]
+        },
+        {
+          "name": "ML9 - Delete Already Deleted",
+          "description": "Depends on ML8 running first.",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/links/{{deleteCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Deleted error', () => pm.expect(pm.response.text()).to.include('URL has been deleted'));"
+          ]}}]
+        },
+        {
+          "name": "ML10 - Delete Not Owner",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token2}}" }],
+            "url": "{{baseUrl}}/api/links/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 409', () => pm.response.to.have.status(409));",
+            "pm.test('Ownership error', () => pm.expect(pm.response.text()).to.include('You do not own this link'));"
+          ]}}]
+        },
+        {
+          "name": "ML11 - Delete Unauthenticated",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/links/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "User Links",
+      "item": [
+        {
+          "name": "UL1 - Get User Links",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/user/links"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+            "pm.test('No deleted URLs', () => { pm.response.json().forEach(u => pm.expect(u.deleted).to.be.false); });"
+          ]}}]
+        },
+        {
+          "name": "UL2 - Get User Links Unauthenticated",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/user/links"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "T1 - Get by Tag (has results)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/links/tags/social"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns non-empty array', () => pm.expect(pm.response.json().length).to.be.above(0));",
+            "pm.test('Each result contains tag', () => { pm.response.json().forEach(u => pm.expect(u.tags).to.include('social')); });"
+          ]}}]
+        },
+        {
+          "name": "T2 - Get by Tag (no results)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/links/tags/nonexistenttag99"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns empty array', () => pm.expect(pm.response.json()).to.eql([]));"
+          ]}}]
+        },
+        {
+          "name": "T3 - Get by Tag Unauthenticated",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/links/tags/social"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "AN1 - Owner with Clicks",
+          "description": "Run R1 first to generate at least one click.",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/analytics/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('Has ShortCode', () => pm.expect(j.ShortCode).to.eql(pm.collectionVariables.get('shortCode')));",
+            "pm.test('Has totalClicks', () => pm.expect(j.totalClicks).to.be.a('number'));",
+            "pm.test('totalClicks >= 1', () => pm.expect(j.totalClicks).to.be.at.least(1));",
+            "pm.test('Has clicksByDate', () => pm.expect(j.clicksByDate).to.be.an('object'));"
+          ]}}]
+        },
+        {
+          "name": "AN2 - Owner Zero Clicks",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/analytics/{{updateCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('totalClicks is 0', () => pm.expect(pm.response.json().totalClicks).to.eql(0));"
+          ]}}]
+        },
+        {
+          "name": "AN3 - Non-Owner",
+          "description": "User 2 attempts to access User 1's analytics.",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token2}}" }],
+            "url": "{{baseUrl}}/api/analytics/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));",
+            "pm.test('Access denied message', () => pm.expect(pm.response.text()).to.include('Access denied'));"
+          ]}}]
+        },
+        {
+          "name": "AN4 - Anonymous URL (NPE bug)",
+          "description": "500 before fix (NPE on null userId), 403 after fix.",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/analytics/{{anonShortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Not 200', () => pm.expect(pm.response.code).to.not.eql(200));",
+            "pm.test('Before fix: 500 / After fix: 403', () => pm.expect(pm.response.code).to.be.oneOf([403, 500]));"
+          ]}}]
+        },
+        {
+          "name": "AN5 - Unauthenticated",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/analytics/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "QR Code",
+      "item": [
+        {
+          "name": "QR1 - Valid (generates file)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/qr/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('Has url field', () => pm.expect(j.url).to.be.a('string'));",
+            "pm.test('url points to qr path', () => pm.expect(j.url).to.include('/qr/'));"
+          ]}}]
+        },
+        {
+          "name": "QR2 - Valid (served from disk)",
+          "description": "Identical to QR1 — file already exists, generation is skipped.",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/qr/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('url contains shortCode', () => pm.expect(pm.response.json().url).to.include(pm.collectionVariables.get('shortCode')));"
+          ]}}]
+        },
+        {
+          "name": "QR3 - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/qr/doesnotexist99999"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}]
+        },
+        {
+          "name": "QR4 - Deleted URL",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/qr/{{preDeletedCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}]
+        },
+        {
+          "name": "QR5 - Unauthenticated",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/qr/{{shortCode}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Bulk Shorten",
+      "item": [
+        {
+          "name": "B1 - Bulk Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten/bulk",
+            "body": { "mode": "raw", "raw": "{\"urls\":[{\"url\":\"https://example.com/b1\"},{\"url\":\"https://example.com/b2\"},{\"url\":\"https://example.com/b3\"}]}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('Returns 3 results', () => pm.expect(j.length).to.eql(3));",
+            "pm.test('Each has shortCode', () => j.forEach(r => pm.expect(r.shortCode).to.be.a('string')));",
+            "pm.test('Each has shortUrl', () => j.forEach(r => pm.expect(r.shortUrl).to.be.a('string')));"
+          ]}}]
+        },
+        {
+          "name": "B2 - Bulk Mixed Valid/Invalid",
+          "description": "One valid URL + one with a shortCode that is already taken. Valid items get shortCode; failures get an error field.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten/bulk",
+            "body": { "mode": "raw", "raw": "{\"urls\":[{\"url\":\"https://example.com/valid-bulk\"},{\"url\":\"https://example.com/conflict\",\"customAlias\":\"{{shortCode}}\"}]}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 200 partial success', () => pm.response.to.have.status(200));",
+            "const j = pm.response.json();",
+            "pm.test('Returns 2 results', () => pm.expect(j.length).to.eql(2));",
+            "pm.test('First item succeeded', () => pm.expect(j[0].shortCode).to.be.a('string'));",
+            "pm.test('Second item has error', () => pm.expect(j[1].error).to.be.a('string'));"
+          ]}}]
+        },
+        {
+          "name": "B3 - Bulk Exceeds 120 URLs",
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+              "const urls = Array.from({length: 121}, (_, i) => ({url: `https://example.com/bulk-${i}`}));",
+              "pm.request.body.update({mode: 'raw', raw: JSON.stringify({urls})});"
+            ]}},
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));"
+            ]}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten/bulk",
+            "body": { "mode": "raw", "raw": "{\"urls\":[]}" }
+          }
+        },
+        {
+          "name": "B4 - Bulk Empty List",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten/bulk",
+            "body": { "mode": "raw", "raw": "{\"urls\":[]}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "B5 - Bulk Unauthenticated",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten/bulk",
+            "body": { "mode": "raw", "raw": "{\"urls\":[{\"url\":\"https://example.com\"}]}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Status 403', () => pm.response.to.have.status(403));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Rate Limiting (Manual)",
+      "description": "Restart the app before each run — buckets are in-memory and reset on restart.\n\nRL1 (Anonymous): Send 11 times with no token from the same IP. The 11th returns 429.\nRL2 (Authenticated): Send 121 times with the same token. The 121st returns 429.\nNote: POST /api/shorten/bulk is never rate-limited — the URI check in RateLimitFilter is an exact match on /api/shorten.",
+      "item": [
+        {
+          "name": "RL1 - Anonymous Rate Limit",
+          "description": "Restart app first. Send this 11 times. The 11th should return 429.",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/rate-test\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 or 429', () => pm.expect(pm.response.code).to.be.oneOf([200, 429]));",
+            "if (pm.response.code === 429) {",
+            "  pm.test('Rate limit message', () => pm.expect(pm.response.text()).to.include('Rate limit exceeded'));",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "RL2 - Authenticated Rate Limit",
+          "description": "Restart app first. Send this 121 times with token. The 121st should return 429.",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/shorten",
+            "body": { "mode": "raw", "raw": "{\"url\":\"https://example.com/rate-auth-test\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 or 429', () => pm.expect(pm.response.code).to.be.oneOf([200, 429]));",
+            "if (pm.response.code === 429) {",
+            "  pm.test('Rate limit message', () => pm.expect(pm.response.text()).to.include('Rate limit exceeded'));",
+            "}"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}
