@@ -6,6 +6,7 @@ import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
 import com.kuttit.repository.UrlRepository;
 import com.kuttit.util.Base62Encoder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,13 +22,12 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UrlService {
 
     private final UrlRepository urlRepository;
-
-    public UrlService(UrlRepository urlRepository) {
-        this.urlRepository = urlRepository;
-    }
+    private RedisTemplate<String, Object> redisTemplate;
+    private CounterService counterService;
 
     // Create Short URL
     public String shortenUrl(String originalUrl, String customAlias, String userId, LocalDateTime expirationDate, List<String> tags) {
@@ -60,9 +60,6 @@ public class UrlService {
         urlRepository.save(url);
         return shortCode;
     }
-
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
 
     // Get original URL
     public String getOriginalUrl(String shortCode) {
@@ -99,9 +96,6 @@ public class UrlService {
 
         return url.getOriginalUrl();
     }
-
-    @Autowired
-    private CounterService counterService;
 
     public String generateShortCode() {
         long id = counterService.getNextSequence("url_sequence");

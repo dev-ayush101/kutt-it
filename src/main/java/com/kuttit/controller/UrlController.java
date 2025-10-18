@@ -98,7 +98,7 @@ public class UrlController {
     @GetMapping("/analytics/{shortCode}")
     public ResponseEntity<?> getAnalytics(@PathVariable String shortCode, @AuthenticationPrincipal UserDetails userDetails) {
         Url url = urlService.getUrlByShortCode(shortCode);
-        if (url == null || !url.getUserId().equals(userDetails.getUsername())) {
+        if (url == null || !userDetails.getUsername().equals(url.getUserId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied");
         }
         return ResponseEntity.ok(clickService.getAnalytics(shortCode));
