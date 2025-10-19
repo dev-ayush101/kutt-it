@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
 public class UrlService {
 
     private final UrlRepository urlRepository;
-    private RedisTemplate<String, Object> redisTemplate;
-    private CounterService counterService;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final CounterService counterService;
 
     // Create Short URL
     public String shortenUrl(String originalUrl, String customAlias, String userId, LocalDateTime expirationDate, List<String> tags) {
@@ -98,7 +98,7 @@ public class UrlService {
     }
 
     public String generateShortCode() {
-        long id = counterService.getNextSequence("url_sequence");
+        long id = counterService.getNextSequence("url_sequence") + 3843;
         return Base62Encoder.encode(id);
     }
 
