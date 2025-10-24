@@ -67,7 +67,7 @@ export default function Landing() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
         <h1 className="text-5xl font-extrabold text-gray-800 dark:text-white mb-4 leading-tight">
-          Shorten your links,<br />share with the world
+          Long URLs deserve to be cut short ✂️
         </h1>
         <p className="text-gray-500 dark:text-gray-400 text-lg mb-10">Fast, simple, and free URL shortener</p>
 

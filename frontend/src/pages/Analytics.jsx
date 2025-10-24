@@ -104,12 +104,12 @@ export default function Analytics() {
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 shadow-sm text-center">
             <h2 className="text-gray-700 dark:text-gray-300 font-semibold mb-4">QR Code</h2>
             <img
-              src={'http://localhost:8080' + qr.url}
+              src={qr.url}
               alt="QR Code"
               className="mx-auto w-48 h-48 rounded-xl"
             />
             <a
-              href={'http://localhost:8080' + qr.url}
+              href={qr.url}
               download
               className="mt-4 inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >

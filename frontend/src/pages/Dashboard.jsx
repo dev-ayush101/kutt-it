@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
@@ -12,7 +12,7 @@ function NewLinkModal({ onClose }) {
   const createLink = useMutation({
     mutationFn: (body) => api.post('/shorten', body),
     onSuccess: () => {
-      queryClient.invalidateQueries(['links'])
+      queryClient.invalidateQueries({ queryKey: ['links'] })
       onClose()
     },
   })
@@ -86,15 +86,55 @@ function NewLinkModal({ onClose }) {
   )
 }
 
+function QrModal({ shortCode, onClose }) {
+  const { data: qr, isLoading, isError } = useQuery({
+    queryKey: ['qr', shortCode],
+    queryFn: () => api.get('/qr/' + shortCode).then((r) => r.data),
+  })
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 w-full max-w-xs shadow-2xl text-center">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">QR Code</h2>
+        {isLoading && <p className="text-gray-400 text-sm py-8">Generating...</p>}
+        {isError && <p className="text-red-500 text-sm py-8">Failed to generate QR code.</p>}
+        {qr?.url && (
+          <>
+            <img
+              src={qr.url}
+              alt="QR Code"
+              className="mx-auto w-48 h-48 rounded-xl mb-4"
+            />
+            <a
+              href={qr.url}
+              download
+              className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Download
+            </a>
+          </>
+        )}
+        <button
+          onClick={onClose}
+          className="block w-full mt-3 text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function LinkCard({ link }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [copied, setCopied] = useState(false)
+  const [showQr, setShowQr] = useState(false)
   const shortUrl = 'http://localhost:8080/api/r/' + link.shortCode
 
   const deleteLink = useMutation({
     mutationFn: () => api.delete('/links/' + link.shortCode),
-    onSuccess: () => queryClient.invalidateQueries(['links']),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['links'] }),
   })
 
   const copy = () => {
@@ -104,54 +144,71 @@ function LinkCard({ link }) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-colors">
-      <div className="flex-1 min-w-0">
-        <p className="text-purple-600 dark:text-purple-400 font-semibold text-sm">{shortUrl}</p>
-        <p className="text-gray-400 text-xs truncate mt-0.5">{link.originalUrl}</p>
-        {link.tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {link.tags.map((t) => (
-              <span key={t} className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs px-2 py-0.5 rounded-full">
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
+    <>
+      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-colors">
+        <div className="flex-1 min-w-0">
+          <p className="text-purple-600 dark:text-purple-400 font-semibold text-sm">{shortUrl}</p>
+          <p className="text-gray-400 text-xs truncate mt-0.5">{link.originalUrl}</p>
+          {link.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {link.tags.map((t) => (
+                <span key={t} className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs px-2 py-0.5 rounded-full">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={copy}
+            className="text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+          <button
+            onClick={() => setShowQr(true)}
+            className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            QR
+          </button>
+          <button
+            onClick={() => navigate('/dashboard/' + link.shortCode)}
+            className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Analytics
+          </button>
+          <button
+            onClick={() => deleteLink.mutate()}
+            disabled={deleteLink.isPending}
+            className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+          >
+            Delete
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={copy}
-          className="text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors"
-        >
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
-        <button
-          onClick={() => navigate('/dashboard/' + link.shortCode)}
-          className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded-lg transition-colors"
-        >
-          Analytics
-        </button>
-        <button
-          onClick={() => deleteLink.mutate()}
-          disabled={deleteLink.isPending}
-          className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
+      {showQr && <QrModal shortCode={link.shortCode} onClose={() => setShowQr(false)} />}
+    </>
   )
 }
 
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
+  const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
 
-  const { data: links = [], isLoading } = useQuery({
+  const { data: links = [], isLoading, isError, error } = useQuery({
     queryKey: ['links'],
     queryFn: () => api.get('/user/links').then((r) => r.data),
   })
+
+  useEffect(() => {
+    if (isError && (error?.response?.status === 403 || error?.response?.status === 401)) {
+      logout()
+      navigate('/login', { replace: true })
+    }
+  }, [isError, error])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
@@ -187,6 +244,12 @@ export default function Dashboard() {
 
         {isLoading && (
           <div className="text-center py-16 text-gray-400">Loading...</div>
+        )}
+
+        {isError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm">
+            Failed to load links. Make sure you are logged in and the server is running.
+          </div>
         )}
 
         {!isLoading && links.length === 0 && (
