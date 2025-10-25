@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useState, useEffect, useRef } from 'react'
 import {
   LineChart,
   Line,
@@ -26,6 +27,22 @@ export default function Analytics() {
     queryKey: ['qr', shortCode],
     queryFn: () => api.get('/qr/' + shortCode).then((r) => r.data),
   })
+
+  const [qrBlobUrl, setQrBlobUrl] = useState(null)
+  const qrBlobRef = useRef(null)
+
+  useEffect(() => {
+    if (!qr?.url) return
+    const proxyUrl = qr.url.replace(/^https?:\/\/[^/]+/, '')
+    fetch(proxyUrl)
+      .then((r) => r.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob)
+        qrBlobRef.current = url
+        setQrBlobUrl(url)
+      })
+    return () => { if (qrBlobRef.current) URL.revokeObjectURL(qrBlobRef.current) }
+  }, [qr?.url])
 
   const chartData = data?.clicksByDate
     ? Object.entries(data.clicksByDate).map(([date, count]) => ({ date, clicks: count }))
@@ -104,17 +121,23 @@ export default function Analytics() {
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-6 shadow-sm text-center">
             <h2 className="text-gray-700 dark:text-gray-300 font-semibold mb-4">QR Code</h2>
             <img
-              src={qr.url}
+              src={qrBlobUrl || qr.url}
               alt="QR Code"
               className="mx-auto w-48 h-48 rounded-xl"
             />
-            <a
-              href={qr.url}
-              download
-              className="mt-4 inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            <button
+              onClick={() => {
+                if (!qrBlobUrl) return
+                const a = document.createElement('a')
+                a.href = qrBlobUrl
+                a.download = shortCode + '-qr.png'
+                a.click()
+              }}
+              disabled={!qrBlobUrl}
+              className="mt-4 inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
             >
               Download QR
-            </a>
+            </button>
           </div>
         )}
       </div>

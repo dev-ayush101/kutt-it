@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
@@ -7,7 +7,8 @@ import api from '../api/axios'
 
 function NewLinkModal({ onClose }) {
   const queryClient = useQueryClient()
-  const [form, setForm] = useState({ url: '', customAlias: '', tags: '' })
+  const [form, setForm] = useState({ url: '', customAlias: '', tags: '', expirationDate: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const createLink = useMutation({
     mutationFn: (body) => api.post('/shorten', body),
@@ -22,6 +23,7 @@ function NewLinkModal({ onClose }) {
     const body = { url: form.url }
     if (form.customAlias.trim()) body.customAlias = form.customAlias.trim()
     if (form.tags.trim()) body.tags = form.tags.split(',').map((t) => t.trim()).filter(Boolean)
+    if (form.expirationDate) body.expirationDate = form.expirationDate + ':00'
     createLink.mutate(body)
   }
 
@@ -41,26 +43,48 @@ function NewLinkModal({ onClose }) {
               required
             />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Custom alias (optional)</label>
-            <input
-              type="text"
-              placeholder="my-alias (3-30 chars)"
-              value={form.customAlias}
-              onChange={(e) => setForm({ ...form, customAlias: e.target.value })}
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tags (comma separated, optional)</label>
-            <input
-              type="text"
-              placeholder="work, social, news"
-              value={form.tags}
-              onChange={(e) => setForm({ ...form, tags: e.target.value })}
-              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            className="text-xs text-purple-600 dark:text-purple-400 hover:underline text-left"
+          >
+            {showAdvanced ? '− Hide options' : '+ Alias, tags, expiry'}
+          </button>
+
+          {showAdvanced && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Custom alias</label>
+                <input
+                  type="text"
+                  placeholder="my-alias (3-30 chars)"
+                  value={form.customAlias}
+                  onChange={(e) => setForm({ ...form, customAlias: e.target.value })}
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tags (comma separated)</label>
+                <input
+                  type="text"
+                  placeholder="work, social, news"
+                  value={form.tags}
+                  onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Expiry date</label>
+                <input
+                  type="datetime-local"
+                  value={form.expirationDate}
+                  min={new Date().toISOString().slice(0, 16)}
+                  onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
+                  className={`w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${form.expirationDate ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}
+                />
+              </div>
+            </>
+          )}
           {createLink.isError && (
             <p className="text-red-500 text-xs">{createLink.error?.response?.data || 'Failed to create link'}</p>
           )}
@@ -92,6 +116,30 @@ function QrModal({ shortCode, onClose }) {
     queryFn: () => api.get('/qr/' + shortCode).then((r) => r.data),
   })
 
+  const [blobUrl, setBlobUrl] = useState(null)
+  const blobUrlRef = useRef(null)
+
+  useEffect(() => {
+    if (!qr?.url) return
+    const proxyUrl = qr.url.replace(/^https?:\/\/[^/]+/, '')
+    fetch(proxyUrl)
+      .then((r) => r.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob)
+        blobUrlRef.current = url
+        setBlobUrl(url)
+      })
+    return () => { if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current) }
+  }, [qr?.url])
+
+  const download = () => {
+    if (!blobUrl) return
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = shortCode + '-qr.png'
+    a.click()
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
       <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 w-full max-w-xs shadow-2xl text-center">
@@ -101,17 +149,17 @@ function QrModal({ shortCode, onClose }) {
         {qr?.url && (
           <>
             <img
-              src={qr.url}
+              src={blobUrl || qr.url}
               alt="QR Code"
               className="mx-auto w-48 h-48 rounded-xl mb-4"
             />
-            <a
-              href={qr.url}
-              download
-              className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            <button
+              onClick={download}
+              disabled={!blobUrl}
+              className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
             >
               Download
-            </a>
+            </button>
           </>
         )}
         <button
@@ -130,6 +178,7 @@ function LinkCard({ link }) {
   const queryClient = useQueryClient()
   const [copied, setCopied] = useState(false)
   const [showQr, setShowQr] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const shortUrl = 'http://localhost:8080/api/r/' + link.shortCode
 
   const deleteLink = useMutation({
@@ -179,7 +228,7 @@ function LinkCard({ link }) {
             Analytics
           </button>
           <button
-            onClick={() => deleteLink.mutate()}
+            onClick={() => setConfirmDelete(true)}
             disabled={deleteLink.isPending}
             className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
           >
@@ -188,6 +237,28 @@ function LinkCard({ link }) {
         </div>
       </div>
       {showQr && <QrModal shortCode={link.shortCode} onClose={() => setShowQr(false)} />}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="text-base font-bold text-gray-800 dark:text-white mb-1">Delete link?</h2>
+            <p className="text-gray-400 text-sm mb-5 break-all">{link.shortCode} → {link.originalUrl}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { deleteLink.mutate(); setConfirmDelete(false) }}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-semibold transition-colors"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
