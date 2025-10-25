@@ -37,7 +37,8 @@ public class UrlService {
             Optional<Url> existing = urlRepository.findByShortCode(customAlias);
             if (existing.isPresent()) {
                 boolean isExpired = existing.get().getExpirationDate() != null && LocalDateTime.now().isAfter(existing.get().getExpirationDate());
-                if (!isExpired) {
+                boolean isDeleted = existing.get().isDeleted();
+                if (!isExpired && !isDeleted) {
                     throw new RuntimeException("Custom alias already exists");
                 }
                 urlRepository.delete(existing.get());
