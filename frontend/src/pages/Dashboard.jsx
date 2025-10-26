@@ -110,6 +110,99 @@ function NewLinkModal({ onClose }) {
   )
 }
 
+function EditLinkModal({ link, onClose }) {
+  const queryClient = useQueryClient()
+
+  const toDatetimeLocal = (dt) => {
+    if (!dt) return ''
+    const d = Array.isArray(dt)
+      ? new Date(dt[0], dt[1] - 1, dt[2], dt[3] || 0, dt[4] || 0)
+      : new Date(dt)
+    return isNaN(d) ? '' : d.toISOString().slice(0, 16)
+  }
+
+  const [form, setForm] = useState({
+    originalUrl: link.originalUrl || '',
+    customAlias: link.customAlias || '',
+    expirationDate: toDatetimeLocal(link.expirationDate),
+  })
+
+  const updateLink = useMutation({
+    mutationFn: (body) => api.put('/links/' + link.shortCode, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['links'] })
+      onClose()
+    },
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const body = { originalUrl: form.originalUrl }
+    if (form.customAlias.trim()) body.customAlias = form.customAlias.trim()
+    if (form.expirationDate) body.expirationDate = form.expirationDate + ':00'
+    updateLink.mutate(body)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Edit Link</h2>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Long URL *</label>
+            <input
+              type="url"
+              value={form.originalUrl}
+              onChange={(e) => setForm({ ...form, originalUrl: e.target.value })}
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Custom alias</label>
+            <input
+              type="text"
+              placeholder="my-alias (3-30 chars)"
+              value={form.customAlias}
+              onChange={(e) => setForm({ ...form, customAlias: e.target.value })}
+              className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Expiry date</label>
+            <input
+              type="datetime-local"
+              value={form.expirationDate}
+              min={new Date().toISOString().slice(0, 16)}
+              onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
+              className={`w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${form.expirationDate ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}
+            />
+          </div>
+          {updateLink.isError && (
+            <p className="text-red-500 text-xs">{updateLink.error?.response?.data || 'Failed to update link'}</p>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button
+              type="submit"
+              disabled={updateLink.isPending}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-60 transition-colors"
+            >
+              {updateLink.isPending ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function QrModal({ shortCode, onClose }) {
   const { data: qr, isLoading, isError } = useQuery({
     queryKey: ['qr', shortCode],
@@ -178,6 +271,7 @@ function LinkCard({ link }) {
   const queryClient = useQueryClient()
   const [copied, setCopied] = useState(false)
   const [showQr, setShowQr] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const shortUrl = 'http://localhost:8080/api/r/' + link.shortCode
 
@@ -216,6 +310,12 @@ function LinkCard({ link }) {
             {copied ? 'Copied!' : 'Copy'}
           </button>
           <button
+            onClick={() => setShowEdit(true)}
+            className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Edit
+          </button>
+          <button
             onClick={() => setShowQr(true)}
             className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 px-3 py-1.5 rounded-lg transition-colors"
           >
@@ -236,6 +336,7 @@ function LinkCard({ link }) {
           </button>
         </div>
       </div>
+      {showEdit && <EditLinkModal link={link} onClose={() => setShowEdit(false)} />}
       {showQr && <QrModal shortCode={link.shortCode} onClose={() => setShowQr(false)} />}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
@@ -268,6 +369,7 @@ export default function Dashboard() {
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
+  const [selectedTag, setSelectedTag] = useState(null)
 
   const { data: links = [], isLoading, isError, error } = useQuery({
     queryKey: ['links'],
@@ -280,6 +382,9 @@ export default function Dashboard() {
       navigate('/login', { replace: true })
     }
   }, [isError, error])
+
+  const allTags = [...new Set(links.flatMap((l) => l.tags || []))]
+  const visibleLinks = selectedTag ? links.filter((l) => l.tags?.includes(selectedTag)) : links
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
@@ -300,10 +405,10 @@ export default function Dashboard() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">My Links</h1>
-            <p className="text-gray-400 text-sm mt-0.5">{links.length} link{links.length !== 1 ? 's' : ''}</p>
+            <p className="text-gray-400 text-sm mt-0.5">{visibleLinks.length} link{visibleLinks.length !== 1 ? 's' : ''}</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -312,6 +417,26 @@ export default function Dashboard() {
             + New Link
           </button>
         </div>
+
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-5">
+            <button
+              onClick={() => setSelectedTag(null)}
+              className={`text-xs px-3 py-1 rounded-full transition-colors ${!selectedTag ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              All
+            </button>
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
+                className={`text-xs px-3 py-1 rounded-full transition-colors ${selectedTag === tag ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
 
         {isLoading && (
           <div className="text-center py-16 text-gray-400">Loading...</div>
@@ -331,7 +456,7 @@ export default function Dashboard() {
         )}
 
         <div className="space-y-3">
-          {links.map((link) => (
+          {visibleLinks.map((link) => (
             <LinkCard key={link.shortCode} link={link} />
           ))}
         </div>
