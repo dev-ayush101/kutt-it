@@ -3,10 +3,12 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useToast } from '../context/ToastContext'
 import api from '../api/axios'
 
 function NewLinkModal({ onClose }) {
   const queryClient = useQueryClient()
+  const { showToast } = useToast()
   const [form, setForm] = useState({ url: '', customAlias: '', tags: '', expirationDate: '' })
   const [showAdvanced, setShowAdvanced] = useState(false)
 
@@ -14,8 +16,10 @@ function NewLinkModal({ onClose }) {
     mutationFn: (body) => api.post('/shorten', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links'] })
+      showToast('Link created')
       onClose()
     },
+    onError: () => showToast('Failed to create link', 'error'),
   })
 
   const handleSubmit = (e) => {
@@ -112,6 +116,7 @@ function NewLinkModal({ onClose }) {
 
 function EditLinkModal({ link, onClose }) {
   const queryClient = useQueryClient()
+  const { showToast } = useToast()
 
   const toDatetimeLocal = (dt) => {
     if (!dt) return ''
@@ -131,8 +136,10 @@ function EditLinkModal({ link, onClose }) {
     mutationFn: (body) => api.put('/links/' + link.shortCode, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links'] })
+      showToast('Link saved')
       onClose()
     },
+    onError: () => showToast('Failed to save link', 'error'),
   })
 
   const handleSubmit = (e) => {
@@ -275,9 +282,15 @@ function LinkCard({ link }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const shortUrl = 'http://localhost:8080/api/r/' + link.shortCode
 
+  const { showToast } = useToast()
+
   const deleteLink = useMutation({
     mutationFn: () => api.delete('/links/' + link.shortCode),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['links'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['links'] })
+      showToast('Link deleted')
+    },
+    onError: () => showToast('Failed to delete link', 'error'),
   })
 
   const copy = () => {
