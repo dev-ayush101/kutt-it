@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ClickRepository extends MongoRepository<Click, String> {
     List<Click> findByShortCode(String shortCode);
+    long countByShortCode(String shortCode);
 }

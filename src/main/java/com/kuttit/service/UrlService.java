@@ -4,6 +4,7 @@ import com.kuttit.dto.ShortenRequest;
 import com.kuttit.dto.UpdateUrlRequest;
 import com.kuttit.exception.ExpiredUrlException;
 import com.kuttit.model.Url;
+import com.kuttit.repository.ClickRepository;
 import com.kuttit.repository.UrlRepository;
 import com.kuttit.util.Base62Encoder;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 public class UrlService {
 
     private final UrlRepository urlRepository;
+    private final ClickRepository clickRepository;
     private final RedisTemplate<String, Object> redisTemplate;
     private final CounterService counterService;
 
@@ -105,9 +107,11 @@ public class UrlService {
 
     // Fetch URLs by userId
     public List<Url> getLinksByUser(String userId) {
-        return urlRepository.findByUserId(userId).stream()
+        List<Url> links = urlRepository.findByUserId(userId).stream()
                 .filter(url -> !url.isDeleted())
                 .collect(Collectors.toList());
+        links.forEach(url -> url.setClickCount(clickRepository.countByShortCode(url.getShortCode())));
+        return links;
     }
 
     // Get URL by short code

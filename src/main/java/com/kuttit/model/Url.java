@@ -34,6 +34,7 @@ public class Url {
 
     @Indexed
     private LocalDateTime expirationDate;
-    private boolean deleted =  false;
-    private List<String> tags =  new ArrayList<>();
+    private boolean deleted = false;
+    private long clickCount = 0;
+    private List<String> tags = new ArrayList<>();
 }

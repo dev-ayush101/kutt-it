@@ -290,7 +290,22 @@ function LinkCard({ link }) {
     <>
       <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-colors">
         <div className="flex-1 min-w-0">
-          <p className="text-purple-600 dark:text-purple-400 font-semibold text-sm">{shortUrl}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-purple-600 dark:text-purple-400 font-semibold text-sm">{shortUrl}</p>
+            <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full shrink-0">
+              {link.clickCount ?? 0} clicks
+            </span>
+            {(() => {
+              if (!link.expirationDate) return null
+              const exp = Array.isArray(link.expirationDate)
+                ? new Date(link.expirationDate[0], link.expirationDate[1] - 1, link.expirationDate[2], link.expirationDate[3] || 0, link.expirationDate[4] || 0)
+                : new Date(link.expirationDate)
+              const diffDays = Math.ceil((exp - Date.now()) / 86400000)
+              if (diffDays < 0) return <span className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 px-2 py-0.5 rounded-full shrink-0">Expired</span>
+              if (diffDays <= 7) return <span className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full shrink-0">Expires in {diffDays}d</span>
+              return null
+            })()}
+          </div>
           <p className="text-gray-400 text-xs truncate mt-0.5">{link.originalUrl}</p>
           {link.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
@@ -309,6 +324,14 @@ function LinkCard({ link }) {
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>
+          <a
+            href={shortUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/40 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Visit
+          </a>
           <button
             onClick={() => setShowEdit(true)}
             className="text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 px-3 py-1.5 rounded-lg transition-colors"
