@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +35,9 @@ public class UrlController {
     private final ClickService clickService;
     private final QrCodeService qrCodeService;
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     // Create Short URL
     @PostMapping("/shorten")
     public ResponseEntity<?> shorten(@RequestBody @Valid ShortenRequest request, @AuthenticationPrincipal UserDetails userDetails) {
@@ -43,7 +47,7 @@ public class UrlController {
 
         return ResponseEntity.ok(Map.of(
                 "shortCode", shortCode,
-                "shortUrl", "http://localhost:8080/api/r/" + shortCode
+                "shortUrl", baseUrl + "/api/r/" + shortCode
         ));
     }
 

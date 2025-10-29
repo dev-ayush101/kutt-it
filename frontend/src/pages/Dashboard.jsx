@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { useToast } from '../context/ToastContext'
 import api from '../api/axios'
+import { BASE_URL } from '../api/config'
 
 function NewLinkModal({ onClose }) {
   const queryClient = useQueryClient()
@@ -292,7 +293,7 @@ function LinkCard({ link }) {
   const [showQr, setShowQr] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const shortUrl = 'http://localhost:8080/api/r/' + link.shortCode
+  const shortUrl = BASE_URL + '/api/r/' + link.shortCode
   const isExpired = link.expirationDate && (() => {
     const exp = Array.isArray(link.expirationDate)
       ? new Date(link.expirationDate[0], link.expirationDate[1] - 1, link.expirationDate[2], link.expirationDate[3] || 0, link.expirationDate[4] || 0)

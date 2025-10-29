@@ -22,6 +22,9 @@ public class QrCodeService {
     @Value("${qr.storage.path}")
     private String storagePath;
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
     @PostConstruct
     public void init() throws IOException {
         Files.createDirectories(Paths.get(storagePath));
@@ -34,12 +37,12 @@ public class QrCodeService {
         if (Files.exists(filePath)) {
             log.info("QR file cache hit for shortCode: {}", shortCode);
         } else {
-            byte[] qrBytes = generateQrCode("http://localhost:8080/api/r/" + shortCode);
+            byte[] qrBytes = generateQrCode(baseUrl + "/api/r/" + shortCode);
             Files.write(filePath, qrBytes);
             log.info("QR generated and saved for shortCode: {}", shortCode);
         }
 
-        return "http://localhost:8080/qr/" + shortCode + ".png";
+        return baseUrl + "/qr/" + shortCode + ".png";
     }
 
     private byte[] generateQrCode(String url) {

@@ -1,4 +1,8 @@
 .DS_Store
+.env
+.env.local
+frontend/.env
+frontend/.env.local
 HELP.md
 target/
 uploads/

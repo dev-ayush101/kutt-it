@@ -12,11 +12,12 @@ import {
 } from 'recharts'
 import { useTheme } from '../context/ThemeContext'
 import api from '../api/axios'
+import { BASE_URL } from '../api/config'
 
 export default function Analytics() {
   const { shortCode } = useParams()
   const { theme, toggle } = useTheme()
-  const shortUrl = 'http://localhost:8080/api/r/' + shortCode
+  const shortUrl = BASE_URL + '/api/r/' + shortCode
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['analytics', shortCode],
