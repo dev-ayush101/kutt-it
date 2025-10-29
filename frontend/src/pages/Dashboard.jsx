@@ -177,13 +177,25 @@ function EditLinkModal({ link, onClose }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Expiry date</label>
-            <input
-              type="datetime-local"
-              value={form.expirationDate}
-              min={new Date().toISOString().slice(0, 16)}
-              onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
-              className={`w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${form.expirationDate ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}
-            />
+            <div className="flex gap-2 items-center">
+              <input
+                type="datetime-local"
+                value={form.expirationDate}
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
+                className={`flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${form.expirationDate ? 'text-gray-800 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}
+              />
+              {form.expirationDate && (
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, expirationDate: '' })}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none"
+                  title="Clear expiry"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           {updateLink.isError && (
             <p className="text-red-500 text-xs">{updateLink.error?.response?.data || 'Failed to update link'}</p>
@@ -281,6 +293,12 @@ function LinkCard({ link }) {
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const shortUrl = 'http://localhost:8080/api/r/' + link.shortCode
+  const isExpired = link.expirationDate && (() => {
+    const exp = Array.isArray(link.expirationDate)
+      ? new Date(link.expirationDate[0], link.expirationDate[1] - 1, link.expirationDate[2], link.expirationDate[3] || 0, link.expirationDate[4] || 0)
+      : new Date(link.expirationDate)
+    return exp < Date.now()
+  })()
 
   const { showToast } = useToast()
 
@@ -301,10 +319,10 @@ function LinkCard({ link }) {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-colors">
+      <div className={`bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 flex items-center gap-4 transition-colors ${isExpired ? 'opacity-50' : ''}`}>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-purple-600 dark:text-purple-400 font-semibold text-sm">{shortUrl}</p>
+            <p className={`text-purple-600 dark:text-purple-400 font-semibold text-sm ${isExpired ? 'line-through' : ''}`}>{shortUrl}</p>
             <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full shrink-0">
               {link.clickCount ?? 0} clicks
             </span>
@@ -444,7 +462,11 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">My Links</h1>
-            <p className="text-gray-400 text-sm mt-0.5">{visibleLinks.length} link{visibleLinks.length !== 1 ? 's' : ''}</p>
+            <p className="text-gray-400 text-sm mt-0.5">
+              {selectedTag
+                ? `${visibleLinks.length} of ${links.length} link${links.length !== 1 ? 's' : ''}`
+                : `${links.length} link${links.length !== 1 ? 's' : ''}`}
+            </p>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -488,6 +510,15 @@ export default function Dashboard() {
           <div className="text-center py-16">
             <p className="text-gray-400 text-lg mb-2">No links yet</p>
             <p className="text-gray-300 dark:text-gray-600 text-sm">Click &quot;+ New Link&quot; to create your first shortened URL</p>
+          </div>
+        )}
+
+        {!isLoading && links.length > 0 && visibleLinks.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-400 text-lg mb-2">No links tagged &quot;{selectedTag}&quot;</p>
+            <button onClick={() => setSelectedTag(null)} className="text-purple-600 dark:text-purple-400 text-sm hover:underline">
+              Clear filter
+            </button>
           </div>
         )}
 
