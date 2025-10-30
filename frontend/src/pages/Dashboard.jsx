@@ -244,6 +244,7 @@ function QrModal({ shortCode, onClose }) {
         {isError && <p className="text-red-500 text-sm py-8">Failed to generate QR code.</p>}
         {qr?.base64 && (
           <>
+            <img
               src={`data:image/png;base64,${qr.base64}`}
               alt="QR Code"
               className="mx-auto w-48 h-48 rounded-xl mb-4"
