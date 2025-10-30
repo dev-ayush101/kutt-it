@@ -1,152 +1,202 @@
-# ✂️ Kutt-it
+# Kutt-it
 
-Kutt-it is a feature-rich URL shortening service that converts long, messy URLs into short, clean, and shareable links. Built with Spring Boot, it provides a production-ready backend with user authentication,
-analytics, link management, QR code generation, and more.
+> A production-ready, full-stack URL shortener with analytics, QR codes, and link management.
 
-### 🚀 Features
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://kutt-it-tau.vercel.app)
+[![Backend](https://img.shields.io/badge/backend-Spring%20Boot%203.3-blue)](https://spring.io/projects/spring-boot)
+[![Frontend](https://img.shields.io/badge/frontend-React%2018-61dafb)](https://react.dev)
 
-- **URL Shortening** — Convert long URLs into short base62-encoded links
-- **Custom Aliases** — Choose your own memorable short codes
-- **URL Expiration** — Set TTL on links; expired aliases are automatically reused
-- **User Authentication** — JWT-based register/login with BCrypt password hashing
-- **Link Management** — Edit or soft-delete your links (PUT/DELETE)
-- **Click Analytics** — Async click tracking with per-link stats (total clicks, clicks by date)
-- **Bulk Shortening** — Shorten up to 120 URLs in a single request
-- **QR Code Generation** — Generate and persist QR codes as static PNG files
-- **Link Tags** — Organize links with tags and filter by tag
-- **Rate Limiting** — Bucket4j-based rate limiting (120 req/hr authenticated, 10 req/hr anonymous)
-- **Redis Caching** — Fast redirects with 12hr TTL; analytics cached with 5min TTL
-- **MongoDB Indexes** — Indexed on shortCode, userId, expirationDate for fast queries
-- **Prometheus Monitoring** — Metrics exposed at `/actuator/prometheus`
-- **Structured Logging** — SLF4J with MDC request tracing (requestId on every log line)
 
-### 🛠️ Tech Stack
+## Overview
 
-- **Backend**: Java 17, Spring Boot 3.3.5
-- **Database**: MongoDB
-- **Cache**: Redis
-- **Security**: Spring Security, JWT (jjwt)
-- **Rate Limiting**: Bucket4j
-- **QR Generation**: ZXing
-- **Monitoring**: Spring Actuator, Micrometer + Prometheus
-- **Containerization**: Docker, Docker Compose
-- **Build Tool**: Maven
-- **Other**: Lombok, Spring Validation
+Kutt-it converts long URLs into short, shareable links. It ships with a dashboard for managing links, per-link click analytics, QR code generation, expiry dates, tagging, and rate limiting — all backed by a RESTful Spring Boot API and a React frontend.
 
-### 📋 Prerequisites
 
-**Option 1: Using Docker (Recommended)**
-- Docker (version 20.10+)
-- Docker Compose (version 1.29+)
+## Features
 
-**Option 2: Manual Setup**
-- Java 17 or higher
-- Maven 3.6+
-- MongoDB (running on localhost:27017)
-- Redis (running on localhost:6379)
+| Feature | Details |
+|---------|---------|
+| URL Shortening | Auto-generated base62 codes or custom aliases |
+| Link Management | Create, edit, soft-delete with full audit trail |
+| Click Analytics | Total clicks + per-day chart |
+| QR Codes | Generated on demand, downloadable as PNG |
+| Expiry Dates | Links auto-expire; expired aliases are reusable |
+| Tags | Organize and filter links by tag |
+| Bulk Shorten | Up to 120 URLs per request via API |
+| Authentication | JWT-based with BCrypt password hashing |
+| Rate Limiting | 120 req/hr (authenticated), 10 req/hr (anonymous) |
+| Caching | Redis-backed redirect cache (12hr TTL) |
+| Monitoring | Prometheus metrics via Spring Actuator |
+| Dark Mode | System-aware theme toggle |
 
-### 🏗️ Installation
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/dev-ayush101/kutt-it.git
-   cd kutt-it
-   ```
+## Architecture
 
-2. Option A: Using Docker (Recommended)
-   ```bash
-   docker-compose up --build 
-   ```
+```mermaid
+graph TD
+    User["User / Browser"]
+    Vercel["React Frontend (Vercel)"]
+    Railway["Spring Boot API (Railway)"]
+    MongoDB["MongoDB (Atlas)"]
+    Redis["Redis (Railway)"]
 
-3. Option B: Manual Setup
-   ```bash
-   mvn clean install
-   mvn spring-boot:run
-   ```
-   
-### 📖 API Documentation
+    User -->|HTTPS| Vercel
+    Vercel -->|REST API| Railway
+    Railway -->|Read / Write| MongoDB
+    Railway -->|Cache / Rate limit| Redis
+```
 
-#### Authentication
-| Method | Endpoint | Auth Required | Description |
-  |--------|----------|:-------------:|-------------|
-| POST | `/api/auth/register` | No | Register a new user |
-| POST | `/api/auth/login` | No | Login and receive JWT token |
 
-#### URL Shortening
-| Method | Endpoint | Auth Required | Description                           |
-  |--------|----------|:-------------:|---------------------------------------|
-| POST | `/api/shorten` | Optional | Shorten a single URL                  |
-| POST | `/api/shorten/bulk` | Yes | Shorten up to 120 URLs in one request |
-| GET | `/api/r/{shortCode}` | No | Redirect to original URL              |
+## Tech Stack
 
-#### Link Management
-| Method | Endpoint | Auth Required | Description |
-  |--------|----------|:-------------:|-------------|
-| GET | `/api/user/links` | Yes | Get all links owned by the user |
-| PUT | `/api/links/{shortCode}` | Yes | Update originalUrl, alias, or expiration |
-| DELETE | `/api/links/{shortCode}` | Yes | Soft delete a link |
-| GET | `/api/links/tags/{tag}` | Yes | Filter owned links by tag |
+**Backend**
+- Java 17, Spring Boot 3.3.5, Spring Security
+- MongoDB (persistence), Redis (caching)
+- JWT (jjwt), BCrypt, Bucket4j, ZXing
+- Spring Actuator + Micrometer + Prometheus
+- Docker, Docker Compose
 
-#### Analytics
-| Method | Endpoint | Auth Required | Description |
-  |--------|----------|:-------------:|-------------|
-| GET | `/api/analytics/{shortCode}` | Yes (owner only) | Get total clicks and clicks by date |
+**Frontend**
+- React 18, Vite, Tailwind CSS
+- TanStack Query v5, React Router v6
+- Recharts, Axios
 
-#### QR Codes
-| Method | Endpoint | Auth Required | Description |
-  |--------|----------|:-------------:|-------------|
-| GET | `/api/qr/{shortCode}` | Yes | Generate QR code and return its static URL |
-| GET | `/qr/{shortCode}.png` | No | Access the QR code PNG directly |
 
-#### Monitoring
-| Method | Endpoint | Auth Required | Description |
-  |--------|----------|:-------------:|-------------|
-| GET | `/actuator/health` | No | Health check |
-| GET | `/actuator/prometheus` | No | Prometheus metrics scrape endpoint |
+## Getting Started
 
-#### Example: Shorten a URL
+### Prerequisites
+
+| Tool | Version |
+|------|---------|
+| Java | 17+ |
+| Maven | 3.6+ |
+| Node.js | 20+ |
+| Docker | 20.10+ _(optional)_ |
+
+### Option A — Docker (Recommended)
 
 ```bash
-curl -X POST http://localhost:8080/api/shorten \
--H "Content-Type: application/json" \
--H "Authorization: Bearer <TOKEN>" \
--d '{"url": "https://example.com", "customAlias": "my-link", "tags": ["work"]}'
+git clone https://github.com/dev-ayush101/kutt-it.git
+cd kutt-it
+docker-compose up --build
 ```
+
+| Service | URL |
+|---------|-----|
+| Backend | http://localhost:8080 |
+| Frontend | http://localhost:5173 |
+| Health | http://localhost:8080/actuator/health |
+
+### Option B — Manual
+
+```bash
+# Terminal 1 — Backend (MongoDB + Redis must be running locally)
+mvn spring-boot:run
+
+# Terminal 2 — Frontend
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+
+## Configuration
+
+### Backend Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SPRING_DATA_MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/kuttit` |
+| `SPRING_DATA_REDIS_HOST` | Redis host | `localhost` |
+| `SPRING_DATA_REDIS_PORT` | Redis port | `6379` |
+| `SPRING_DATA_REDIS_PASSWORD` | Redis password | _(empty)_ |
+| `JWT_SECRET` | JWT signing key (min 32 chars) | dev default |
+| `JWT_EXPIRATION` | Token lifetime in ms | `86400000` (24h) |
+| `APP_BASE_URL` | Public URL of the backend | `http://localhost:8080` |
+| `APP_CORS_ORIGIN` | Allowed frontend origin | `http://localhost:5173` |
+
+### Frontend Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_BASE_URL` | Backend base URL (leave empty for local dev — Vite proxy handles it) |
+
+See `frontend/.env.example` for a template.
+
+
+## API Reference
+
+### Authentication
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|:----:|-------------|
+| `POST` | `/api/auth/register` | — | Register a new user |
+| `POST` | `/api/auth/login` | — | Login, returns JWT |
+
+### Links
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|:----:|-------------|
+| `POST` | `/api/shorten` | Optional | Shorten a single URL |
+| `POST` | `/api/shorten/bulk` | Required | Shorten up to 120 URLs |
+| `GET` | `/api/r/{shortCode}` | — | Redirect to original URL |
+| `GET` | `/api/user/links` | Required | List authenticated user's links |
+| `PUT` | `/api/links/{shortCode}` | Required | Update URL, alias, or expiry |
+| `DELETE` | `/api/links/{shortCode}` | Required | Soft-delete a link |
+| `GET` | `/api/links/tags/{tag}` | Required | Filter links by tag |
+
+### Analytics & QR
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|:----:|-------------|
+| `GET` | `/api/analytics/{shortCode}` | Owner only | Total clicks + clicks by date |
+| `GET` | `/api/qr/{shortCode}` | Required | Generate and return QR code |
+
+### Monitoring
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/actuator/health` | Health check |
+| `GET` | `/actuator/prometheus` | Prometheus metrics |
+
+### Example
+
+```bash
+curl -X POST https://kutt-it.up.railway.app/api/shorten \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{"url": "https://example.com/very/long/path", "customAlias": "my-link", "tags": ["work"]}'
+```
+
 ```json
 {
   "shortCode": "my-link",
-  "shortUrl": "http://localhost:8080/api/r/my-link"
+  "shortUrl": "https://kutt-it.up.railway.app/api/r/my-link"
 }
 ```
 
-### 🐳 Docker Configuration
 
-```bash
-# Start all services
-docker-compose up -d
+## Deployment
 
-# View logs
-docker-compose logs -f kuttit-app
+### Backend → Railway
 
-# Stop services
-docker-compose down
+1. Connect the GitHub repo — Railway detects the `Dockerfile` automatically
+2. Add a **Redis** database plugin
+3. Set all backend environment variables in the Railway dashboard
+4. Railway auto-deploys on every push to `main`
 
-# Remove volumes
-docker-compose down -v
-```
+### Frontend → Vercel
 
-Environment Variables
+1. Import the GitHub repo, set root directory to `frontend`
+2. Set `VITE_API_BASE_URL` to your Railway backend URL
+3. Set `APP_CORS_ORIGIN` in Railway to your Vercel URL
+4. Vercel auto-deploys on every push to `main`
 
-```yaml
-SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/kuttit
-SPRING_DATA_REDIS_HOST=redis
-SPRING_DATA_REDIS_PORT=6379
-```
 
-### 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch: git checkout -b feature/your-feature
-3. Commit your changes: git commit -m 'Add some feature'
-4. Push to the branch: git push origin feature/your-feature
-5. Open a pull request
+2. Create a feature branch — `git checkout -b feature/your-feature`
+3. Commit your changes with a descriptive message
+4. Push and open a pull request
