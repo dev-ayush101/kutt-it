@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
@@ -229,26 +229,9 @@ function QrModal({ shortCode, onClose }) {
     queryFn: () => api.get('/qr/' + shortCode).then((r) => r.data),
   })
 
-  const [blobUrl, setBlobUrl] = useState(null)
-  const blobUrlRef = useRef(null)
-
-  useEffect(() => {
-    if (!qr?.url) return
-    const proxyUrl = qr.url.replace(/^https?:\/\/[^/]+/, '')
-    fetch(proxyUrl)
-      .then((r) => r.blob())
-      .then((blob) => {
-        const url = URL.createObjectURL(blob)
-        blobUrlRef.current = url
-        setBlobUrl(url)
-      })
-    return () => { if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current) }
-  }, [qr?.url])
-
   const download = () => {
-    if (!blobUrl) return
     const a = document.createElement('a')
-    a.href = blobUrl
+    a.href = `data:image/png;base64,${qr.base64}`
     a.download = shortCode + '-qr.png'
     a.click()
   }
@@ -259,17 +242,15 @@ function QrModal({ shortCode, onClose }) {
         <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">QR Code</h2>
         {isLoading && <p className="text-gray-400 text-sm py-8">Generating...</p>}
         {isError && <p className="text-red-500 text-sm py-8">Failed to generate QR code.</p>}
-        {qr?.url && (
+        {qr?.base64 && (
           <>
-            <img
-              src={blobUrl || qr.url}
+              src={`data:image/png;base64,${qr.base64}`}
               alt="QR Code"
               className="mx-auto w-48 h-48 rounded-xl mb-4"
             />
             <button
               onClick={download}
-              disabled={!blobUrl}
-              className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50"
+              className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
               Download
             </button>

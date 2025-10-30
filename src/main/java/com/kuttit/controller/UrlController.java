@@ -123,7 +123,7 @@ public class UrlController {
         if (url == null || url.isDeleted()) {
             return ResponseEntity.notFound().build();
         }
-        String qrUrl = qrCodeService.getQrCodeUrl(shortCode);
-        return ResponseEntity.ok(Map.of("url", qrUrl));
+        String qrBase64 = qrCodeService.getQrCodeBase64(shortCode);
+        return ResponseEntity.ok(Map.of("base64", qrBase64));
     }
 }

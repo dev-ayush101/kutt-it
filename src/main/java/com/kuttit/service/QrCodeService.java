@@ -4,45 +4,20 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.Base64;
 
-@Slf4j
 @Service
 public class QrCodeService {
 
-    @Value("${qr.storage.path}")
-    private String storagePath;
-
-    @Value("${app.base-url}")
     private String baseUrl;
 
-    @PostConstruct
-    public void init() throws IOException {
-        Files.createDirectories(Paths.get(storagePath));
-        log.info("QR storage directory ready: {}", storagePath);
-    }
-
-    public String getQrCodeUrl(String shortCode) throws IOException {
-        Path filePath = Paths.get(storagePath, shortCode + ".png");
-
-        if (Files.exists(filePath)) {
-            log.info("QR file cache hit for shortCode: {}", shortCode);
-        } else {
-            byte[] qrBytes = generateQrCode(baseUrl + "/api/r/" + shortCode);
-            Files.write(filePath, qrBytes);
-            log.info("QR generated and saved for shortCode: {}", shortCode);
-        }
-
-        return baseUrl + "/qr/" + shortCode + ".png";
+    public String getQrCodeBase64(String shortCode) {
+        byte[] qrBytes = generateQrCode(baseUrl + "/api/r/" + shortCode);
+        return Base64.getEncoder().encodeToString(qrBytes);
     }
 
     private byte[] generateQrCode(String url) {
